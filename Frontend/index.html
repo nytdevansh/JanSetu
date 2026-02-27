@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JanSetu — Connecting Citizens to Government Services</title>
+    <meta name="description"
+        content="JanSetu is a unified government services portal connecting Indian citizens to government schemes, services, and digital initiatives.">
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+Devanagari:wght@400;600;700&display=swap"
+        rel="stylesheet">
+</head>
+
+<body>
+
+    <!-- ===== TOP HEADER BAR (like presentations.gov.in) ===== -->
+    <header class="top-header" id="top-header">
+        <div class="top-header__inner">
+            <!-- Left: Emblem + Brand -->
+            <div class="top-header__brand">
+                <img src="assets/ashok.png" alt="Government of India Emblem" class="top-header__emblem">
+                <div class="top-header__brand-text">
+                    <span class="top-header__brand-icon">&#9632;</span>
+                    <span class="top-header__brand-name">JanSetu</span>
+                </div>
+            </div>
+
+            <!-- Center/Right: Navigation Links -->
+            <nav class="top-header__nav" id="main-nav">
+                <button class="top-header__hamburger" id="hamburger-btn" aria-label="Toggle navigation menu">
+                    <span></span><span></span><span></span>
+                </button>
+                <ul class="top-header__nav-list" id="nav-list">
+                    <li><a href="#" class="top-header__nav-link active" data-slide="0">Home</a></li>
+                    <li><a href="#" class="top-header__nav-link" data-slide="1">Schemes</a></li>
+                    <li><a href="#" class="top-header__nav-link" data-slide="2">Services</a></li>
+                    <li><a href="#" class="top-header__nav-link" data-slide="3">Documents</a></li>
+                    <li><a href="#" class="top-header__nav-link">About</a></li>
+                </ul>
+            </nav>
+
+            <!-- Far Right: Accessibility + Language + Login + PM image -->
+            <div class="top-header__actions">
+                <div class="top-header__font-controls">
+                    <button class="top-header__font-btn" id="font-increase" aria-label="Increase font size">A+</button>
+                    <button class="top-header__font-btn" id="font-default" aria-label="Default font size">A</button>
+                    <button class="top-header__font-btn" id="font-decrease" aria-label="Decrease font size">A-</button>
+                </div>
+                <a href="#" class="top-header__lang-btn">हिन्दी</a>
+                <a href="login/login.HTML" class="top-header__login-btn" id="login-btn">Login</a>
+                <img src="assets/modiji.png" alt="Honourable Prime Minister" class="top-header__pm">
+            </div>
+        </div>
+    </header>
+
+    <!-- ===== HERO SLIDER (presentations.gov.in style) ===== -->
+    <section class="slider" id="hero-slider" aria-label="Featured content slider">
+
+        <!-- Slide 1 -->
+        <div class="slider__slide slider__slide--active" data-index="0">
+            <img src="assets/slide_1.png" alt="Digital India" class="slider__bg">
+            <div class="slider__overlay"></div>
+            <div class="slider__content">
+                <span class="slider__category">Digital India</span>
+                <h1 class="slider__title">Citizen Services</h1>
+                <p class="slider__desc">Access government services, certificates, and digital identity solutions — all
+                    from a single unified portal.</p>
+                <a href="#" class="slider__view-btn" id="btn-slide-0">View all</a>
+            </div>
+        </div>
+
+        <!-- Slide 2 -->
+        <div class="slider__slide" data-index="1">
+            <img src="assets/slide_2.png" alt="Government Schemes" class="slider__bg">
+            <div class="slider__overlay"></div>
+            <div class="slider__content">
+                <span class="slider__category">Government</span>
+                <h1 class="slider__title">Schemes</h1>
+                <p class="slider__desc">Discover and apply for government welfare schemes — PM Kisan, Mudra Yojana,
+                    Ujjwala, and hundreds more.</p>
+                <a href="#" class="slider__view-btn" id="btn-slide-1">View all</a>
+            </div>
+        </div>
+
+        <!-- Slide 3 -->
+        <div class="slider__slide" data-index="2">
+            <img src="assets/slide_3.png" alt="Health and Education" class="slider__bg">
+            <div class="slider__overlay"></div>
+            <div class="slider__content">
+                <span class="slider__category">Swasth Bharat</span>
+                <h1 class="slider__title">Health & Education</h1>
+                <p class="slider__desc">Connecting citizens to Ayushman Bharat, National Education Policy, and digital
+                    learning platforms.</p>
+                <a href="#" class="slider__view-btn" id="btn-slide-2">View all</a>
+            </div>
+        </div>
+
+        <!-- Slide 4 -->
+        <div class="slider__slide" data-index="3">
+            <img src="assets/slide_1.png" alt="Digital Documents" class="slider__bg">
+            <div class="slider__overlay slider__overlay--purple"></div>
+            <div class="slider__content">
+                <span class="slider__category">DigiLocker</span>
+                <h1 class="slider__title">Documents</h1>
+                <p class="slider__desc">Store, share, and verify your official documents digitally — Aadhaar, PAN,
+                    driving licence, and more.</p>
+                <a href="#" class="slider__view-btn" id="btn-slide-3">View all</a>
+            </div>
+        </div>
+
+        <!-- Slider Arrow Controls -->
+        <button class="slider__arrow slider__arrow--prev" id="slider-prev" aria-label="Previous slide">&#10094;</button>
+        <button class="slider__arrow slider__arrow--next" id="slider-next" aria-label="Next slide">&#10095;</button>
+
+        <!-- Dot / Line Indicators (like presentations.gov.in) -->
+        <div class="slider__indicators" id="slider-indicators">
+            <button class="slider__indicator slider__indicator--active" data-index="0"
+                aria-label="Go to slide 1"></button>
+            <button class="slider__indicator" data-index="1" aria-label="Go to slide 2"></button>
+            <button class="slider__indicator" data-index="2" aria-label="Go to slide 3"></button>
+            <button class="slider__indicator" data-index="3" aria-label="Go to slide 4"></button>
+        </div>
+    </section>
+
+    <!-- ===== SEARCH BAR (like presentations.gov.in) ===== -->
+    <div class="search-bar" id="search-bar">
+        <div class="search-bar__inner">
+            <button class="search-bar__filter-btn" aria-label="Filter">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="4" y1="6" x2="20" y2="6"></line>
+                    <line x1="8" y1="12" x2="16" y2="12"></line>
+                    <line x1="11" y1="18" x2="13" y2="18"></line>
+                </svg>
+            </button>
+            <input type="text" class="search-bar__input" id="search-input"
+                placeholder="Search for Services, Schemes, Documents...">
+            <button class="search-bar__search-btn" aria-label="Search">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <path d="m21 21-4.35-4.35"></path>
+                </svg>
+            </button>
+        </div>
+    </div>
+
+    <!-- ===== CONTENT SECTIONS (like presentations.gov.in) ===== -->
+    <main class="main-content" id="main">
+
+        <!-- Section: Citizen Services -->
+        <section class="content-section" id="section-services">
+            <div class="content-section__inner">
+                <div class="content-section__header">
+                    <div class="content-section__text">
+                        <span class="content-section__label">Digital India</span>
+                        <h2 class="content-section__title">Citizen Services</h2>
+                        <p class="content-section__desc">Access essential government services, certificates, and digital
+                            solutions through a unified platform.</p>
+                    </div>
+                    <div class="content-section__graphic">
+                        <div class="content-section__graphic-placeholder">
+                            <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                <polyline points="14 2 14 8 20 8"></polyline>
+                                <line x1="16" y1="13" x2="8" y2="13"></line>
+                                <line x1="16" y1="17" x2="8" y2="17"></line>
+                                <polyline points="10 9 9 9 8 9"></polyline>
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+                <div class="content-section__cards-header">
+                    <h3 class="content-section__cards-title">Popular Services</h3>
+                    <a href="#" class="content-section__view-all">View all ▸</a>
+                </div>
+                <div class="content-section__cards">
+                    <div class="card" id="card-aadhaar">
+                        <div class="card__icon">🆔</div>
+                        <h4 class="card__title">Aadhaar Services</h4>
+                        <p class="card__category">Identity</p>
+                    </div>
+                    <div class="card" id="card-pan">
+                        <div class="card__icon">💳</div>
+                        <h4 class="card__title">PAN Card</h4>
+                        <p class="card__category">Tax & Finance</p>
+                    </div>
+                    <div class="card" id="card-passport">
+                        <div class="card__icon">📘</div>
+                        <h4 class="card__title">Passport Seva</h4>
+                        <p class="card__category">Travel</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section: Government Schemes -->
+        <section class="content-section content-section--alt" id="section-schemes">
+            <div class="content-section__inner">
+                <div class="content-section__header">
+                    <div class="content-section__text">
+                        <span class="content-section__label">Government</span>
+                        <h2 class="content-section__title">Schemes</h2>
+                        <p class="content-section__desc">Explore welfare programmes designed to empower every citizen of
+                            India.</p>
+                    </div>
+                    <div class="content-section__graphic">
+                        <div class="content-section__graphic-placeholder">
+                            <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                                <circle cx="9" cy="7" r="4"></circle>
+                                <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                                <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+                <div class="content-section__cards-header">
+                    <h3 class="content-section__cards-title">Top Schemes</h3>
+                    <a href="#" class="content-section__view-all">View all ▸</a>
+                </div>
+                <div class="content-section__cards">
+                    <div class="card" id="card-kisan">
+                        <div class="card__icon">🌾</div>
+                        <h4 class="card__title">PM Kisan Samman</h4>
+                        <p class="card__category">Agriculture</p>
+                    </div>
+                    <div class="card" id="card-mudra">
+                        <div class="card__icon">🏦</div>
+                        <h4 class="card__title">Mudra Yojana</h4>
+                        <p class="card__category">Finance</p>
+                    </div>
+                    <div class="card" id="card-ujjwala">
+                        <div class="card__icon">🔥</div>
+                        <h4 class="card__title">Ujjwala Yojana</h4>
+                        <p class="card__category">Energy</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section: Health & Education -->
+        <section class="content-section" id="section-health">
+            <div class="content-section__inner">
+                <div class="content-section__header">
+                    <div class="content-section__text">
+                        <span class="content-section__label">Swasth Bharat</span>
+                        <h2 class="content-section__title">Health & Education</h2>
+                        <p class="content-section__desc">Access healthcare and education programmes for a stronger,
+                            smarter India.</p>
+                    </div>
+                    <div class="content-section__graphic">
+                        <div class="content-section__graphic-placeholder">
+                            <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M22 12h-4l-3 9L9 3l-3 9H2"></path>
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+                <div class="content-section__cards-header">
+                    <h3 class="content-section__cards-title">Key Programmes</h3>
+                    <a href="#" class="content-section__view-all">View all ▸</a>
+                </div>
+                <div class="content-section__cards">
+                    <div class="card" id="card-ayushman">
+                        <div class="card__icon">🏥</div>
+                        <h4 class="card__title">Ayushman Bharat</h4>
+                        <p class="card__category">Healthcare</p>
+                    </div>
+                    <div class="card" id="card-nep">
+                        <div class="card__icon">📚</div>
+                        <h4 class="card__title">NEP 2020</h4>
+                        <p class="card__category">Education</p>
+                    </div>
+                    <div class="card" id="card-diksha">
+                        <div class="card__icon">💻</div>
+                        <h4 class="card__title">DIKSHA Platform</h4>
+                        <p class="card__category">Digital Learning</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- ===== FOOTER ===== -->
+    <footer class="footer" id="footer">
+        <div class="footer__inner">
+            <div class="footer__brand">
+                <img src="assets/JanSetu.png" alt="JanSetu" class="footer__logo">
+                <p class="footer__tagline">Connecting Citizens to Government</p>
+            </div>
+            <div class="footer__links">
+                <h4 class="footer__heading">Quick Links</h4>
+                <ul>
+                    <li><a href="#">About JanSetu</a></li>
+                    <li><a href="#">Terms of Use</a></li>
+                    <li><a href="#">Privacy Policy</a></li>
+                    <li><a href="#">FAQ</a></li>
+                    <li><a href="#">Sitemap</a></li>
+                </ul>
+            </div>
+            <div class="footer__contact">
+                <h4 class="footer__heading">Contact Us</h4>
+                <ul>
+                    <li>📞 1800-XXX-XXXX (Toll Free)</li>
+                    <li>✉️ support@jansetu.gov.in</li>
+                    <li>🏛️ Ministry of Electronics & IT<br>New Delhi - 110003</li>
+                </ul>
+            </div>
+        </div>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+
+</html>
