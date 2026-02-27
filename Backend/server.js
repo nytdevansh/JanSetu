@@ -6,25 +6,23 @@ const crypto = require('crypto');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Vote hashing salt
+const VOTE_SALT = process.env.VOTE_SALT || 'jansetu_vote_salt_2026';
+
 // ─── Middleware ───────────────────────────────────────────
-// CORS — allow requests from any origin during development
 app.use((req, res, next) => {
     res.header('Access-Control-Allow-Origin', '*');
     res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
     res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-    if (req.method === 'OPTIONS') {
-        return res.sendStatus(200);
-    }
+    if (req.method === 'OPTIONS') return res.sendStatus(200);
     next();
 });
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-
-// Serve the Frontend as static files
 app.use(express.static(path.join(__dirname, '..', 'Frontend')));
 
-// ─── MySQL Connection (configure your credentials) ───────
+// ─── MySQL Connection ────────────────────────────────────
 const db = mysql.createConnection({
     host: process.env.DB_HOST || 'localhost',
     user: process.env.DB_USER || 'root',
@@ -41,7 +39,6 @@ db.connect((err) => {
     }
 });
 
-// Helper: promisify db.query for cleaner async/await usage
 function dbQuery(sql, params) {
     return new Promise((resolve, reject) => {
         db.query(sql, params, (err, results) => {
@@ -51,44 +48,29 @@ function dbQuery(sql, params) {
     });
 }
 
+function hashVoterId(voterId) {
+    return '0x' + crypto.createHash('sha256').update(voterId + VOTE_SALT).digest('hex');
+}
+
 
 // ═══════════════════════════════════════════════════════════
 //   AUTH ROUTES
 // ═══════════════════════════════════════════════════════════
 
-// Health check
 app.get('/api/health', (req, res) => {
-    res.json({
-        status: 'ok',
-        service: 'JanSetu Backend',
-        timestamp: new Date().toISOString()
-    });
+    res.json({ status: 'ok', service: 'JanSetu Backend', timestamp: new Date().toISOString() });
 });
 
-// Login
 app.post('/api/login', (req, res) => {
     const { username, password } = req.body;
+    if (!username || !password) return res.status(400).json({ error: 'Username and password are required' });
 
-    if (!username || !password) {
-        return res.status(400).json({ error: 'Username and password are required' });
-    }
-
-    const query = 'SELECT * FROM users WHERE username = ? AND password = ?';
-    db.query(query, [username, password], (err, results) => {
-        if (err) {
-            console.error('Login query error:', err.message);
-            return res.status(500).json({ error: 'Internal server error' });
-        }
-
+    db.query('SELECT * FROM users WHERE username = ? AND password = ?', [username, password], (err, results) => {
+        if (err) return res.status(500).json({ error: 'Internal server error' });
         if (results && results.length > 0) {
             res.json({
-                success: true,
-                message: 'Login successful',
-                user: {
-                    id: results[0].id,
-                    username: results[0].username,
-                    name: results[0].name || results[0].username
-                }
+                success: true, message: 'Login successful',
+                user: { id: results[0].id, username: results[0].username, name: results[0].name || results[0].username }
             });
         } else {
             res.status(401).json({ error: 'Invalid username or password' });
@@ -96,104 +78,138 @@ app.post('/api/login', (req, res) => {
     });
 });
 
-// Register
 app.post('/api/register', (req, res) => {
     const { username, password, name, email } = req.body;
+    if (!username || !password) return res.status(400).json({ error: 'Username and password are required' });
 
-    if (!username || !password) {
-        return res.status(400).json({ error: 'Username and password are required' });
-    }
-
-    const query = 'INSERT INTO users (username, password, name, email) VALUES (?, ?, ?, ?)';
-    db.query(query, [username, password, name || username, email || null], (err, result) => {
-        if (err) {
-            if (err.code === 'ER_DUP_ENTRY') {
-                return res.status(409).json({ error: 'Username already exists' });
+    db.query('INSERT INTO users (username, password, name, email) VALUES (?, ?, ?, ?)',
+        [username, password, name || username, email || null], (err, result) => {
+            if (err) {
+                if (err.code === 'ER_DUP_ENTRY') return res.status(409).json({ error: 'Username already exists' });
+                return res.status(500).json({ error: 'Internal server error' });
             }
-            console.error('Register query error:', err.message);
-            return res.status(500).json({ error: 'Internal server error' });
-        }
-
-        res.status(201).json({
-            success: true,
-            message: 'Registration successful',
-            userId: result.insertId
+            res.status(201).json({ success: true, message: 'Registration successful', userId: result.insertId });
         });
-    });
 });
 
 
 // ═══════════════════════════════════════════════════════════
-//   POLLS & VOTING ROUTES
+//   ELECTION & VOTING ROUTES
 // ═══════════════════════════════════════════════════════════
 
-// Get all active polls
-app.get('/api/polls', async (req, res) => {
+// Get active elections
+app.get('/api/elections', async (req, res) => {
     try {
-        const polls = await dbQuery('SELECT * FROM polls WHERE is_active = TRUE ORDER BY created_at DESC');
-        // Parse the JSON candidates field
-        const parsed = polls.map(p => ({
-            ...p,
-            candidates: typeof p.candidates === 'string' ? JSON.parse(p.candidates) : p.candidates
+        const elections = await dbQuery('SELECT * FROM elections WHERE is_active = TRUE ORDER BY created_at DESC');
+        const parsed = elections.map(e => ({
+            ...e,
+            candidates: typeof e.candidates === 'string' ? JSON.parse(e.candidates) : e.candidates
         }));
-        res.json({ polls: parsed });
+        res.json({ elections: parsed });
     } catch (err) {
-        console.error('Polls query error:', err.message);
+        console.error('Elections query error:', err.message);
         res.status(500).json({ error: 'Internal server error' });
     }
 });
 
-// Submit a vote
-app.post('/api/vote', async (req, res) => {
-    const { userId, pollId, candidate } = req.body;
+// Verify a Voter ID (check if valid + if already voted)
+app.post('/api/voter/verify', async (req, res) => {
+    const { voterId } = req.body;
+    if (!voterId) return res.status(400).json({ error: 'Voter ID is required' });
 
-    if (!userId || !pollId || !candidate) {
-        return res.status(400).json({ error: 'userId, pollId, and candidate are required' });
+    try {
+        const voters = await dbQuery('SELECT * FROM voters WHERE voter_id = ?', [voterId]);
+
+        if (!voters || voters.length === 0) {
+            return res.status(404).json({ error: 'Invalid Voter ID. Not found in the registry.', valid: false });
+        }
+
+        const voter = voters[0];
+
+        if (voter.has_voted) {
+            return res.status(409).json({
+                error: 'This Voter ID has already been used to cast a vote.',
+                valid: true,
+                alreadyVoted: true,
+                votedAt: voter.voted_at
+            });
+        }
+
+        // Valid and hasn't voted
+        res.json({
+            valid: true,
+            alreadyVoted: false,
+            voter: {
+                name: voter.full_name,
+                fatherName: voter.father_name,
+                age: voter.age,
+                gender: voter.gender,
+                constituency: voter.constituency,
+                state: voter.state
+            }
+        });
+
+    } catch (err) {
+        console.error('Voter verify error:', err.message);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
+// Cast a vote
+app.post('/api/vote', async (req, res) => {
+    const { voterId, electionId, candidate } = req.body;
+
+    if (!voterId || !electionId || !candidate) {
+        return res.status(400).json({ error: 'voterId, electionId, and candidate are required' });
     }
 
     try {
-        // 1. Check user exists
-        const users = await dbQuery('SELECT id, vote_status FROM users WHERE id = ?', [userId]);
-        if (!users || users.length === 0) {
-            return res.status(404).json({ error: 'User not found' });
+        // 1. Verify voter exists
+        const voters = await dbQuery('SELECT * FROM voters WHERE voter_id = ?', [voterId]);
+        if (!voters || voters.length === 0) {
+            return res.status(404).json({ error: 'Invalid Voter ID' });
         }
 
-        // 2. Check if user already voted on this poll
-        const existingVote = await dbQuery(
-            'SELECT id FROM vote_queue WHERE user_id = ? AND poll_id = ? AND status != ?',
-            [userId, pollId, 'failed']
-        );
-        if (existingVote && existingVote.length > 0) {
-            return res.status(409).json({ error: 'You have already voted on this poll' });
+        // 2. Check if already voted
+        const voter = voters[0];
+        if (voter.has_voted) {
+            return res.status(409).json({ error: 'This Voter ID has already cast a vote' });
         }
 
-        // 3. Check poll exists and is active
-        const polls = await dbQuery('SELECT * FROM polls WHERE id = ? AND is_active = TRUE', [pollId]);
-        if (!polls || polls.length === 0) {
-            return res.status(404).json({ error: 'Poll not found or inactive' });
+        // 3. Verify election exists and is active
+        const elections = await dbQuery('SELECT * FROM elections WHERE id = ? AND is_active = TRUE', [electionId]);
+        if (!elections || elections.length === 0) {
+            return res.status(404).json({ error: 'Election not found or inactive' });
         }
 
         // 4. Validate candidate
-        const poll = polls[0];
-        const candidates = typeof poll.candidates === 'string' ? JSON.parse(poll.candidates) : poll.candidates;
+        const election = elections[0];
+        const candidates = typeof election.candidates === 'string' ? JSON.parse(election.candidates) : election.candidates;
         if (!candidates.includes(candidate)) {
-            return res.status(400).json({ error: 'Invalid candidate for this poll' });
+            return res.status(400).json({ error: 'Invalid candidate for this election' });
         }
 
-        // 5. Insert into vote queue + update user status (atomic)
+        // 5. Hash the voter ID for blockchain privacy
+        const hashedVoterId = hashVoterId(voterId);
+
+        // 6. Insert into vote queue
         await dbQuery(
-            'INSERT INTO vote_queue (user_id, poll_id, candidate, status) VALUES (?, ?, ?, ?)',
-            [userId, pollId, candidate, 'queued']
+            'INSERT INTO vote_queue (voter_id, election_id, candidate, blockchain_hash, status) VALUES (?, ?, ?, ?, ?)',
+            [voterId, electionId, candidate, hashedVoterId, 'queued']
         );
+
+        // 7. Mark voter as voted
         await dbQuery(
-            'UPDATE users SET vote_status = ? WHERE id = ?',
-            ['pending', userId]
+            'UPDATE voters SET has_voted = TRUE, voted_party = ?, voted_at = NOW() WHERE voter_id = ?',
+            [candidate, voterId]
         );
 
         res.json({
             success: true,
-            message: 'Vote submitted successfully! It will be confirmed on the blockchain shortly.',
-            status: 'pending'
+            message: 'Vote cast successfully! Your vote is being processed on the blockchain.',
+            blockchainHash: hashedVoterId,
+            candidate: candidate,
+            status: 'queued'
         });
 
     } catch (err) {
@@ -202,72 +218,126 @@ app.post('/api/vote', async (req, res) => {
     }
 });
 
-// Get vote status for a user
-app.get('/api/vote/status', async (req, res) => {
-    const { userId, pollId } = req.query;
-
-    if (!userId) {
-        return res.status(400).json({ error: 'userId is required' });
-    }
+// Get election results (public — open data)
+app.get('/api/elections/:electionId/results', async (req, res) => {
+    const { electionId } = req.params;
 
     try {
-        let query = 'SELECT vq.*, p.title as poll_title FROM vote_queue vq JOIN polls p ON vq.poll_id = p.id WHERE vq.user_id = ?';
-        const params = [userId];
-
-        if (pollId) {
-            query += ' AND vq.poll_id = ?';
-            params.push(pollId);
-        }
-
-        query += ' ORDER BY vq.created_at DESC';
-
-        const votes = await dbQuery(query, params);
-        const user = await dbQuery('SELECT vote_status, vote_tx_hash FROM users WHERE id = ?', [userId]);
-
-        res.json({
-            userStatus: user[0]?.vote_status || 'none',
-            txHash: user[0]?.vote_tx_hash || null,
-            votes: votes || []
-        });
-    } catch (err) {
-        console.error('Vote status error:', err.message);
-        res.status(500).json({ error: 'Internal server error' });
-    }
-});
-
-// Get vote results for a poll (aggregated counts)
-app.get('/api/polls/:pollId/results', async (req, res) => {
-    const { pollId } = req.params;
-
-    try {
-        const poll = await dbQuery('SELECT * FROM polls WHERE id = ?', [pollId]);
-        if (!poll || poll.length === 0) {
-            return res.status(404).json({ error: 'Poll not found' });
+        const election = await dbQuery('SELECT * FROM elections WHERE id = ?', [electionId]);
+        if (!election || election.length === 0) {
+            return res.status(404).json({ error: 'Election not found' });
         }
 
         const results = await dbQuery(
-            "SELECT candidate, COUNT(*) as votes FROM vote_queue WHERE poll_id = ? AND status IN ('queued', 'processing', 'done') GROUP BY candidate",
-            [pollId]
+            "SELECT candidate, COUNT(*) as votes FROM vote_queue WHERE election_id = ? AND status IN ('queued', 'processing', 'done') GROUP BY candidate",
+            [electionId]
         );
 
-        const candidates = typeof poll[0].candidates === 'string' ? JSON.parse(poll[0].candidates) : poll[0].candidates;
-
-        // Build results map with 0 for candidates with no votes
+        const candidates = typeof election[0].candidates === 'string' ? JSON.parse(election[0].candidates) : election[0].candidates;
         const resultsMap = {};
         candidates.forEach(c => { resultsMap[c] = 0; });
         results.forEach(r => { resultsMap[r.candidate] = r.votes; });
 
+        const totalVotes = results.reduce((sum, r) => sum + r.votes, 0);
+
         res.json({
-            poll: {
-                id: poll[0].id,
-                title: poll[0].title,
-                description: poll[0].description
-            },
+            election: { id: election[0].id, title: election[0].title, description: election[0].description },
             results: resultsMap,
-            totalVotes: results.reduce((sum, r) => sum + r.votes, 0)
+            totalVotes: totalVotes
         });
     } catch (err) {
-        console.error('Poll results error:', err.message);
+        console.error('Election results error:', err.message);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
+// Get vote receipt/status by voter ID (for transparency)
+app.get('/api/vote/receipt', async (req, res) => {
+    const { voterId } = req.query;
+    if (!voterId) return res.status(400).json({ error: 'voterId is required' });
+
+    try {
+        const voter = await dbQuery('SELECT * FROM voters WHERE voter_id = ?', [voterId]);
+        if (!voter || voter.length === 0) {
+            return res.status(404).json({ error: 'Voter ID not found' });
+        }
+
+        if (!voter[0].has_voted) {
+            return res.json({ hasVoted: false });
+        }
+
+        const voteRecord = await dbQuery(
+            'SELECT candidate, blockchain_hash, tx_hash, status, created_at FROM vote_queue WHERE voter_id = ? ORDER BY created_at DESC LIMIT 1',
+            [voterId]
+        );
+
+        res.json({
+            hasVoted: true,
+            votedAt: voter[0].voted_at,
+            vote: voteRecord[0] || null,
+            blockchainHash: voteRecord[0]?.blockchain_hash || null,
+            txHash: voteRecord[0]?.tx_hash || null,
+            status: voteRecord[0]?.status || 'unknown'
+        });
+    } catch (err) {
+        console.error('Vote receipt error:', err.message);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
+
+// ═══════════════════════════════════════════════════════════
+//   OFFICIAL ROUTES
+// ═══════════════════════════════════════════════════════════
+
+// Official Login
+app.post('/api/official/login', async (req, res) => {
+    const { username, password } = req.body;
+    if (!username || !password) return res.status(400).json({ error: 'Username and password required' });
+
+    try {
+        const officials = await dbQuery('SELECT id, username, full_name, department, region FROM officials WHERE username = ? AND password = ?', [username, password]);
+        if (!officials || officials.length === 0) {
+            return res.status(401).json({ error: 'Invalid official credentials' });
+        }
+        res.json({ success: true, official: officials[0] });
+    } catch (err) {
+        console.error('Official login error:', err.message);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
+// Get complaints for an official (filtered by their department and region)
+app.get('/api/official/complaints', async (req, res) => {
+    const { department, region } = req.query;
+    if (!department || !region) return res.status(400).json({ error: 'Department and region required' });
+
+    try {
+        const complaints = await dbQuery(
+            'SELECT c.*, u.name as citizen_name FROM complaints c JOIN users u ON c.user_id = u.id WHERE c.department = ? AND c.region = ? ORDER BY c.created_at DESC',
+            [department, region]
+        );
+        res.json({ complaints: complaints || [] });
+    } catch (err) {
+        console.error('Fetch official complaints error:', err.message);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
+// Update complaint status
+app.put('/api/official/complaint/:id/status', async (req, res) => {
+    const { id } = req.params;
+    const { status } = req.body;
+
+    if (!status || !['pending', 'approve', 'reject'].includes(status)) {
+        return res.status(400).json({ error: 'Invalid status. Must be pending, approve, or reject.' });
+    }
+
+    try {
+        await dbQuery('UPDATE complaints SET status = ? WHERE id = ?', [status, id]);
+        res.json({ success: true, message: `Complaint status updated to ${status}` });
+    } catch (err) {
+        console.error('Update complaint status error:', err.message);
         res.status(500).json({ error: 'Internal server error' });
     }
 });
@@ -277,107 +347,74 @@ app.get('/api/polls/:pollId/results', async (req, res) => {
 //   COMPLAINTS ROUTES
 // ═══════════════════════════════════════════════════════════
 
-// Submit a complaint
 app.post('/api/complaint', async (req, res) => {
     const { userId, region, department, level, title, description } = req.body;
-
     if (!userId || !region || !department || !level || !title || !description) {
-        return res.status(400).json({ error: 'All fields are required (userId, region, department, level, title, description)' });
+        return res.status(400).json({ error: 'All fields are required' });
     }
 
     const validLevels = ['low', 'medium', 'high', 'critical'];
-    if (!validLevels.includes(level)) {
-        return res.status(400).json({ error: 'Invalid level. Must be: low, medium, high, or critical' });
-    }
+    if (!validLevels.includes(level)) return res.status(400).json({ error: 'Invalid level' });
 
     try {
         const result = await dbQuery(
             'INSERT INTO complaints (user_id, region, department, level, title, description) VALUES (?, ?, ?, ?, ?, ?)',
             [userId, region, department, level, title, description]
         );
-
         res.status(201).json({
-            success: true,
-            message: 'Complaint submitted successfully',
+            success: true, message: 'Complaint submitted successfully',
             complaintId: result.insertId,
             trackingId: 'JAN-' + String(result.insertId).padStart(6, '0')
         });
     } catch (err) {
-        console.error('Complaint submission error:', err.message);
+        console.error('Complaint error:', err.message);
         res.status(500).json({ error: 'Internal server error' });
     }
 });
 
-// Get complaints for a user
 app.get('/api/complaints', async (req, res) => {
     const { userId } = req.query;
-
-    if (!userId) {
-        return res.status(400).json({ error: 'userId is required' });
-    }
+    if (!userId) return res.status(400).json({ error: 'userId is required' });
 
     try {
-        const complaints = await dbQuery(
-            'SELECT * FROM complaints WHERE user_id = ? ORDER BY created_at DESC',
-            [userId]
-        );
-
+        const complaints = await dbQuery('SELECT * FROM complaints WHERE user_id = ? ORDER BY created_at DESC', [userId]);
         res.json({ complaints: complaints || [] });
     } catch (err) {
-        console.error('Complaints query error:', err.message);
         res.status(500).json({ error: 'Internal server error' });
     }
 });
 
 
 // ═══════════════════════════════════════════════════════════
-//   SEARCH & SCHEMES ROUTES
+//   SEARCH & SCHEMES
 // ═══════════════════════════════════════════════════════════
 
-// Search schemes/services
 app.get('/api/search', (req, res) => {
     const { q } = req.query;
+    if (!q) return res.status(400).json({ error: 'Search query is required' });
 
-    if (!q) {
-        return res.status(400).json({ error: 'Search query is required' });
-    }
-
-    const query = 'SELECT * FROM schemes WHERE name LIKE ? OR description LIKE ? LIMIT 20';
-    const searchTerm = `%${q}%`;
-    db.query(query, [searchTerm, searchTerm], (err, results) => {
-        if (err) {
-            console.error('Search query error:', err.message);
-            return res.status(500).json({ error: 'Internal server error' });
-        }
-
-        res.json({ results: results || [], count: results ? results.length : 0 });
-    });
+    db.query('SELECT * FROM schemes WHERE name LIKE ? OR description LIKE ? LIMIT 20',
+        [`%${q}%`, `%${q}%`], (err, results) => {
+            if (err) return res.status(500).json({ error: 'Internal server error' });
+            res.json({ results: results || [], count: results ? results.length : 0 });
+        });
 });
 
-// Get all schemes
 app.get('/api/schemes', (req, res) => {
-    const query = 'SELECT * FROM schemes ORDER BY created_at DESC';
-    db.query(query, (err, results) => {
-        if (err) {
-            console.error('Schemes query error:', err.message);
-            return res.status(500).json({ error: 'Internal server error' });
-        }
-
+    db.query('SELECT * FROM schemes ORDER BY created_at DESC', (err, results) => {
+        if (err) return res.status(500).json({ error: 'Internal server error' });
         res.json({ schemes: results || [] });
     });
 });
 
 
-// ─── Catch-all: serve frontend (using middleware to avoid Express 5 405 issue) ─
+// ─── Catch-all ───────────────────────────────────────────
 app.use((req, res, next) => {
-    // Don't intercept API routes
-    if (req.path.startsWith('/api/')) {
-        return next();
-    }
+    if (req.path.startsWith('/api/')) return next();
     res.sendFile(path.join(__dirname, '..', 'Frontend', 'index.html'));
 });
 
-// ─── Start Server ─────────────────────────────────────────
+// ─── Start Server ────────────────────────────────────────
 app.listen(PORT, () => {
     console.log(`
     ╔══════════════════════════════════════╗

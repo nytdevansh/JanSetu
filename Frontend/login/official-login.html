@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JanSetu — Official Portal Login</title>
+    <link rel="stylesheet" href="../style.css">
+    <style>
+        body {
+            background-color: #0f172a;
+            /* Slate 900 */
+            color: #f8fafc;
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .login-page {
+            width: 100%;
+            display: flex;
+            justify-content: center;
+        }
+
+        .login-box {
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 12px;
+            width: 400px;
+            padding: 40px;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
+            text-align: center;
+        }
+
+        .login-box__logo {
+            font-size: 2rem;
+            font-weight: 800;
+            color: #38bdf8;
+            margin-bottom: 8px;
+            letter-spacing: -1px;
+        }
+
+        .login-box__title {
+            margin: 0 0 4px 0;
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #f1f5f9;
+        }
+
+        .login-box__desc {
+            color: #94a3b8;
+            font-size: 0.85rem;
+            margin: 0 0 32px 0;
+        }
+
+        .auth-badge {
+            display: inline-block;
+            background: rgba(245, 158, 11, 0.15);
+            color: #fbbf24;
+            border: 1px solid rgba(245, 158, 11, 0.3);
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 24px;
+        }
+
+        .form-group {
+            text-align: left;
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #cbd5e1;
+        }
+
+        .form-input {
+            width: 100%;
+            background: #0f172a;
+            border: 1px solid #475569;
+            color: #f8fafc;
+            padding: 12px 16px;
+            border-radius: 8px;
+            box-sizing: border-box;
+            font-size: 0.95rem;
+            transition: all 0.2s;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: #38bdf8;
+            box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.15);
+        }
+
+        .form-input::placeholder {
+            color: #64748b;
+        }
+
+        .btn-submit {
+            width: 100%;
+            background: #38bdf8;
+            color: #0f172a;
+            border: none;
+            padding: 14px;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-top: 8px;
+            box-shadow: 0 4px 6px rgba(56, 189, 248, 0.2);
+        }
+
+        .btn-submit:hover {
+            background: #7dd3fc;
+            transform: translateY(-1px);
+        }
+
+        .login-footer {
+            margin-top: 32px;
+            font-size: 0.85rem;
+            color: #94a3b8;
+        }
+
+        .link {
+            color: #38bdf8;
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.2s;
+        }
+
+        .link:hover {
+            color: #7dd3fc;
+        }
+    </style>
+</head>
+
+<body>
+    <main class="login-page">
+        <div class="login-box">
+            <div class="login-box__logo">JanSetu</div>
+            <div class="auth-badge">Restricted Access</div>
+            <h2 class="login-box__title">Official Portal</h2>
+            <p class="login-box__desc">Log in to manage citizen complaints.</p>
+
+            <form id="official-login-form" class="login-form">
+                <div class="form-group">
+                    <label class="form-label" for="username">Official Username</label>
+                    <input class="form-input" type="text" id="username" placeholder="Enter given username" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="password">Security Protocol (Password)</label>
+                    <input class="form-input" type="password" id="password" placeholder="Enter secure password"
+                        required>
+                </div>
+
+                <button type="submit" class="btn-submit">Secure Login</button>
+                <div id="login-error"
+                    style="color: #ef4444; margin-top: 16px; font-size: 0.85em; display: none; background: rgba(239, 68, 68, 0.1); padding: 8px; border-radius: 6px; border: 1px solid rgba(239, 68, 68, 0.2);">
+                </div>
+            </form>
+
+            <div class="login-footer">
+                <p>Not an official? <a href="../login/login.html" class="link">Go to Citizen Login</a></p>
+                <p style="margin-top: 24px;"><a href="../index.html" class="link">← Back to Home</a></p>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        document.getElementById('official-login-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const errorDiv = document.getElementById('login-error');
+            const submitBtn = document.querySelector('.btn-submit');
+
+            try {
+                submitBtn.disabled = true;
+                submitBtn.textContent = 'Authenticating...';
+
+                const res = await fetch('/api/official/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+
+                const data = await res.json();
+
+                if (res.ok) {
+                    sessionStorage.setItem('official', JSON.stringify(data.official));
+                    window.location.href = '../dashboard/official-dashboard.html';
+                } else {
+                    errorDiv.textContent = data.error;
+                    errorDiv.style.display = 'block';
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = 'Secure Login';
+                }
+            } catch (err) {
+                errorDiv.textContent = 'Server connection failed. Please try again later.';
+                errorDiv.style.display = 'block';
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Secure Login';
+            }
+        });
+    </script>
+</body>
+
+</html>

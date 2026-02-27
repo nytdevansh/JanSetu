@@ -50,10 +50,11 @@
 
         <!-- DB Results (always works, reads from backend API) -->
         <section class="results-section results-section--active" id="results-db">
-            <h2 class="results-title">Poll Results <span class="results-badge results-badge--db">from Database</span>
+            <h2 class="results-title">Election Results <span class="results-badge results-badge--db">from
+                    Database</span>
             </h2>
             <div id="db-results-container">
-                <p class="loading-text">Loading poll results...</p>
+                <p class="loading-text">Loading election results...</p>
             </div>
         </section>
 
@@ -108,25 +109,25 @@
 
         async function loadDbResults() {
             try {
-                const pollsRes = await fetch('/api/polls');
-                const pollsData = await pollsRes.json();
+                const electionsRes = await fetch('/api/elections');
+                const electionsData = await electionsRes.json();
 
-                if (!pollsData.polls || pollsData.polls.length === 0) {
-                    dbContainer.innerHTML = '<p class="loading-text">No polls found.</p>';
+                if (!electionsData.elections || electionsData.elections.length === 0) {
+                    dbContainer.innerHTML = '<p class="loading-text">No elections found.</p>';
                     return;
                 }
 
                 let html = '';
-                for (const poll of pollsData.polls) {
-                    const resultsRes = await fetch(`/api/polls/${poll.id}/results`);
+                for (const election of electionsData.elections) {
+                    const resultsRes = await fetch(`/api/elections/${election.id}/results`);
                     const resultsData = await resultsRes.json();
 
                     const totalVotes = resultsData.totalVotes || 0;
 
                     html += `
                         <div class="result-card">
-                            <h3 class="result-card__title">${poll.title}</h3>
-                            <p class="result-card__desc">${poll.description || ''}</p>
+                            <h3 class="result-card__title">${election.title}</h3>
+                            <p class="result-card__desc">${election.description || ''}</p>
                             <p class="result-card__total">Total votes: <strong>${totalVotes}</strong></p>
                             <div class="result-card__bars">`;
 

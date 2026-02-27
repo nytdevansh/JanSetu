@@ -23,7 +23,7 @@
             <nav class="header__nav">
                 <a href="../index.html" class="header__nav-link">Home</a>
                 <a href="#" class="header__nav-link active">Dashboard</a>
-                <a href="#" class="header__nav-link">My Applications</a>
+                <a href="../verify/verify.html" class="header__nav-link">Verify Results</a>
                 <a href="#" class="header__nav-link">Help</a>
             </nav>
             <div class="header__actions">
@@ -52,7 +52,7 @@
             <!-- Tab Buttons -->
             <div class="tab-bar" id="tab-bar">
                 <button class="tab-btn tab-btn--active" data-tab="vote" id="tab-vote-btn">🗳️ Vote
-                    <span class="tab-btn__desc">Cast your vote on government polls &amp; community decisions</span>
+                    <span class="tab-btn__desc">Cast your vote in the election</span>
                 </button>
                 <br>
                 <button class="tab-btn" data-tab="complaints" id="tab-complaints-btn">📋 Complaints
@@ -62,77 +62,168 @@
 
             <!-- ====== VOTE TAB ====== -->
             <section class="tab-content tab-content--active" id="tab-vote">
-                <h2 class="dashboard__section-title">Active Polls &amp; Surveys</h2>
-                <p class="tab-intro">Cast your vote on ongoing government initiatives and community decisions.</p>
-                <div class="vote-grid" id="vote-grid">
-                    <p style="color: #5A6A7A; text-align: center; padding: 40px;">Loading polls...</p>
+
+                <!-- Step 1: Enter Voter ID -->
+                <div id="vote-step-1" class="vote-step">
+                    <h2 class="dashboard__section-title">Voter ID Verification</h2>
+                    <p class="tab-intro">Enter your Voter ID to verify your eligibility and cast your vote.</p>
+
+                    <div class="voter-id-card">
+                        <div class="form-group">
+                            <label class="form-label" for="voter-id-input">Voter ID</label>
+                            <input class="form-input" type="text" id="voter-id-input" placeholder="e.g. VOT-100001"
+                                style="text-transform: uppercase;">
+                        </div>
+                        <button class="btn btn--primary" id="verify-voter-btn" onclick="verifyVoter()"
+                            style="margin-top: 16px;">
+                            Verify & Proceed
+                        </button>
+                        <div id="voter-message" class="complaint-message" style="margin-top: 12px;"></div>
+                    </div>
+
+                    <!-- Voter Info (shown after verification) -->
+                    <div id="voter-info" class="voter-info" style="display: none;">
+                        <h3 style="margin-bottom: 12px; font-size: 1rem;">✅ Voter Verified</h3>
+                        <div class="voter-info__grid">
+                            <div><strong>Name:</strong> <span id="vi-name"></span></div>
+                            <div><strong>Father's Name:</strong> <span id="vi-father"></span></div>
+                            <div><strong>Age:</strong> <span id="vi-age"></span></div>
+                            <div><strong>Gender:</strong> <span id="vi-gender"></span></div>
+                            <div><strong>Constituency:</strong> <span id="vi-constituency"></span></div>
+                            <div><strong>State:</strong> <span id="vi-state"></span></div>
+                        </div>
+                        <button class="btn btn--primary" onclick="showBallot()" style="margin-top: 20px;">
+                            Proceed to Ballot →
+                        </button>
+                    </div>
                 </div>
+
+                <!-- Step 2: Ballot (party selection) -->
+                <div id="vote-step-2" class="vote-step" style="display: none;">
+                    <h2 class="dashboard__section-title" id="election-title">Loading...</h2>
+                    <p class="tab-intro" id="election-desc"></p>
+
+                    <div id="ballot-options" class="ballot-options">
+                        <!-- Party rectangles rendered by JS -->
+                    </div>
+
+                    <input type="hidden" id="selected-candidate" value="">
+
+                    <button class="vote-card__submit-btn" id="submit-vote-btn" onclick="castVote()">Submit</button>
+                    <div id="vote-result-message" class="complaint-message" style="margin-top: 16px;"></div>
+                </div>
+
+                <!-- Step 3: Vote Receipt -->
+                <div id="vote-step-3" class="vote-step" style="display: none;">
+                    <div class="receipt-card">
+                        <h2 style="color: #138808; margin-bottom: 12px;">✅ Vote Recorded Successfully!</h2>
+                        <p style="margin-bottom: 20px; color: var(--color-text-muted);">Your vote has been queued for
+                            blockchain confirmation.</p>
+
+                        <div class="receipt-details">
+                            <div><strong>Party Voted:</strong> <span id="receipt-party"></span></div>
+                            <div><strong>Blockchain Hash:</strong> <code id="receipt-hash"
+                                    style="word-break: break-all; font-size: 0.8rem;"></code></div>
+                            <div><strong>Status:</strong> <span id="receipt-status" class="receipt-status"></span></div>
+                        </div>
+
+                        <p style="margin-top: 20px; font-size: 0.82rem; color: var(--color-text-muted);">
+                            🔒 Your voter ID is encrypted on the blockchain. Only the vote destination (party) is public
+                            data.
+                            <br>Verify results anytime at <a href="../verify/verify.html" style="color: #1e88e5;">Public
+                                Verification Dashboard</a>.
+                        </p>
+                    </div>
+                </div>
+
             </section>
 
             <!-- ====== COMPLAINTS TAB ====== -->
             <section class="tab-content" id="tab-complaints">
-                <h2 class="dashboard__section-title">File a Complaint</h2>
-                <p class="tab-intro">Report issues in your area. Your complaint will be routed to the appropriate
-                    department.</p>
-
-                <div class="complaint-card">
-                    <form id="complaint-form">
-                        <div class="form-grid">
-                            <div class="form-group">
-                                <label class="form-label" for="complaint-region">Region</label>
-                                <input class="form-input" type="text" id="complaint-region"
-                                    placeholder="e.g. Delhi, Mumbai..." required>
-                            </div>
-                            <div class="form-group">
-                                <label class="form-label" for="complaint-department">Department</label>
-                                <select class="form-input" id="complaint-department" required>
-                                    <option value="" disabled selected>Select department</option>
-                                    <option value="public-works">Public Works</option>
-                                    <option value="health">Health</option>
-                                    <option value="education">Education</option>
-                                    <option value="water-supply">Water Supply</option>
-                                    <option value="electricity">Electricity</option>
-                                    <option value="transport">Transport</option>
-                                    <option value="sanitation">Sanitation</option>
-                                    <option value="other">Other</option>
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <label class="form-label" for="complaint-level">Level of Problem</label>
-                                <select class="form-input" id="complaint-level" required>
-                                    <option value="" disabled selected>Select severity</option>
-                                    <option value="low">Low</option>
-                                    <option value="medium">Medium</option>
-                                    <option value="high">High</option>
-                                    <option value="critical">Critical</option>
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <label class="form-label" for="complaint-title">Title</label>
-                                <input class="form-input" type="text" id="complaint-title"
-                                    placeholder="Brief title of your complaint" required>
-                            </div>
-                        </div>
-                        <div class="form-group" style="margin-top: 16px;">
-                            <label class="form-label" for="complaint-desc">Description</label>
-                            <textarea class="form-input" id="complaint-desc" rows="4"
-                                placeholder="Describe the issue in detail..." required></textarea>
-                        </div>
-                        <div class="form-group" style="margin-top: 16px;">
-                            <label class="form-label" for="complaint-file">Attach Evidence (Audio/Video/Image)</label>
-                            <input class="form-input form-input--file" type="file" id="complaint-file"
-                                accept="image/*,audio/*,video/*">
-                        </div>
-
-                        <div class="complaint-actions">
-                            <button type="submit" class="btn btn--primary" id="complaint-submit-btn">Submit
-                                Complaint</button>
-                            <button type="reset" class="btn btn--secondary">Reset</button>
-                        </div>
-
-                        <div class="complaint-message" id="complaint-message"></div>
-                    </form>
+                <div
+                    style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 24px;">
+                    <div>
+                        <h2 class="dashboard__section-title" style="margin-bottom: 8px;">Complaints & Grievances</h2>
+                        <p class="tab-intro" style="margin-bottom: 0;">Report issues in your area or track existing
+                            complaints.</p>
+                    </div>
+                    <button class="btn btn--secondary" id="toggle-track-btn" onclick="toggleComplaintView()">
+                        Track My Complaints →
+                    </button>
                 </div>
+
+                <!-- File Complaint View -->
+                <div id="complaint-file-view">
+                    <div class="complaint-card">
+                        <form id="complaint-form">
+                            <div class="form-grid">
+                                <div class="form-group">
+                                    <label class="form-label" for="complaint-region">Region</label>
+                                    <input class="form-input" type="text" id="complaint-region"
+                                        placeholder="e.g. Delhi, Mumbai..." required>
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label" for="complaint-department">Department</label>
+                                    <select class="form-input" id="complaint-department" required>
+                                        <option value="" disabled selected>Select department</option>
+                                        <option value="public-works">Public Works</option>
+                                        <option value="health">Health</option>
+                                        <option value="education">Education</option>
+                                        <option value="water-supply">Water Supply</option>
+                                        <option value="electricity">Electricity</option>
+                                        <option value="transport">Transport</option>
+                                        <option value="sanitation">Sanitation</option>
+                                        <option value="other">Other</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label" for="complaint-level">Level of Problem</label>
+                                    <select class="form-input" id="complaint-level" required>
+                                        <option value="" disabled selected>Select severity</option>
+                                        <option value="low">Low</option>
+                                        <option value="medium">Medium</option>
+                                        <option value="high">High</option>
+                                        <option value="critical">Critical</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label" for="complaint-title">Title</label>
+                                    <input class="form-input" type="text" id="complaint-title"
+                                        placeholder="Brief title of your complaint" required>
+                                </div>
+                            </div>
+                            <div class="form-group" style="margin-top: 16px;">
+                                <label class="form-label" for="complaint-desc">Description</label>
+                                <textarea class="form-input" id="complaint-desc" rows="4"
+                                    placeholder="Describe the issue in detail..." required></textarea>
+                            </div>
+                            <div class="form-group" style="margin-top: 16px;">
+                                <label class="form-label" for="complaint-file">Attach Evidence
+                                    (Audio/Video/Image)</label>
+                                <input class="form-input form-input--file" type="file" id="complaint-file"
+                                    accept="image/*,audio/*,video/*">
+                            </div>
+
+                            <div class="complaint-actions">
+                                <button type="submit" class="btn btn--primary" id="complaint-submit-btn">Submit
+                                    Complaint</button>
+                                <button type="reset" class="btn btn--secondary">Reset</button>
+                            </div>
+
+                            <div class="complaint-message" id="complaint-message"></div>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Track Complaints View -->
+                <div id="complaint-track-view" style="display: none;">
+                    <div id="tracker-list-container">
+                        <!-- Tracking cards will be loaded here via JS -->
+                        <p style="text-align: center; color: var(--color-text-muted); padding: 40px;">Loading your
+                            complaints...</p>
+                    </div>
+                </div>
+
             </section>
 
             <!-- Recent Activity -->
@@ -159,8 +250,10 @@
     </footer>
 
     <script>
-        // ─── Auth Check ──────────────────────────────────────────
+        // ─── State ───────────────────────────────────────────────
         const user = JSON.parse(sessionStorage.getItem('user'));
+        let verifiedVoterId = null;
+        let currentElectionId = null;
 
         if (!user) {
             window.location.href = '../login/login.HTML';
@@ -168,7 +261,6 @@
             document.getElementById('user-greeting').textContent = 'Hello, ' + (user.name || user.username);
         }
 
-        // Logout
         document.getElementById('logout-btn').addEventListener('click', () => {
             sessionStorage.removeItem('user');
             window.location.href = '../login/login.HTML';
@@ -176,102 +268,148 @@
 
 
         // ─── Tab Switching ───────────────────────────────────────
-        const tabBtns = document.querySelectorAll('.tab-btn');
-        const tabContents = document.querySelectorAll('.tab-content');
-
-        tabBtns.forEach(btn => {
+        document.querySelectorAll('.tab-btn').forEach(btn => {
             btn.addEventListener('click', () => {
-                const target = btn.dataset.tab;
-                tabBtns.forEach(b => b.classList.remove('tab-btn--active'));
-                tabContents.forEach(c => c.classList.remove('tab-content--active'));
+                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('tab-btn--active'));
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('tab-content--active'));
                 btn.classList.add('tab-btn--active');
-                document.getElementById('tab-' + target).classList.add('tab-content--active');
+                document.getElementById('tab-' + btn.dataset.tab).classList.add('tab-content--active');
             });
         });
 
 
-        // ─── Load Polls from API ─────────────────────────────────
-        const voteGrid = document.getElementById('vote-grid');
+        // ═══════════════════════════════════════════════════════════
+        //   STEP 1: VOTER ID VERIFICATION
+        // ═══════════════════════════════════════════════════════════
 
-        async function loadPolls() {
-            try {
-                const res = await fetch('/api/polls');
-                const data = await res.json();
+        async function verifyVoter() {
+            const input = document.getElementById('voter-id-input');
+            const msg = document.getElementById('voter-message');
+            const voterId = input.value.trim().toUpperCase();
 
-                if (!data.polls || data.polls.length === 0) {
-                    voteGrid.innerHTML = '<p style="color:#5A6A7A;text-align:center;padding:40px;">No active polls at the moment.</p>';
-                    return;
-                }
-
-                // Also check which polls user already voted on
-                let userVotes = [];
-                try {
-                    const voteRes = await fetch(`/api/vote/status?userId=${user.id}`);
-                    const voteData = await voteRes.json();
-                    userVotes = (voteData.votes || []).filter(v => v.status !== 'failed');
-                } catch (e) { /* ignore */ }
-
-                const votedPollIds = new Set(userVotes.map(v => v.poll_id));
-
-                voteGrid.innerHTML = '';
-                data.polls.forEach(poll => {
-                    const alreadyVoted = votedPollIds.has(poll.id);
-                    const existingVote = userVotes.find(v => v.poll_id === poll.id);
-
-                    const card = document.createElement('div');
-                    card.className = 'vote-card';
-                    card.id = 'vote-card-' + poll.id;
-
-                    let optionsHTML = '';
-                    poll.candidates.forEach(candidate => {
-                        const checked = (alreadyVoted && existingVote && existingVote.candidate === candidate) ? 'checked' : '';
-                        const disabled = alreadyVoted ? 'disabled' : '';
-                        optionsHTML += `
-                            <label class="vote-option">
-                                <input type="radio" name="poll-${poll.id}" value="${candidate}" ${checked} ${disabled}> ${candidate}
-                            </label>`;
-                    });
-
-                    const btnText = alreadyVoted ? '✅ Vote Recorded!' : 'Cast Vote';
-                    const btnStyle = alreadyVoted ? 'background:#138808;' : '';
-                    const btnDisabled = alreadyVoted ? 'disabled' : '';
-
-                    card.innerHTML = `
-                        <div class="vote-card__badge">${alreadyVoted ? 'Voted' : 'Active'}</div>
-                        <h3 class="vote-card__title">${poll.title}</h3>
-                        <p class="vote-card__desc">${poll.description || ''}</p>
-                        <div class="vote-card__options">${optionsHTML}</div>
-                        <button class="vote-card__submit-btn" style="${btnStyle}" ${btnDisabled} onclick="submitVote(${poll.id})">${btnText}</button>
-                    `;
-
-                    if (alreadyVoted) {
-                        const badge = card.querySelector('.vote-card__badge');
-                        badge.style.background = '#e6f0ff';
-                        badge.style.color = '#1e88e5';
-                    }
-
-                    voteGrid.appendChild(card);
-                });
-
-            } catch (err) {
-                console.error('Failed to load polls:', err);
-                voteGrid.innerHTML = '<p style="color:#cc3333;text-align:center;padding:40px;">Failed to load polls. Is the server running?</p>';
-            }
-        }
-
-        loadPolls();
-
-
-        // ─── Vote Submission ─────────────────────────────────────
-        async function submitVote(pollId) {
-            const selected = document.querySelector(`input[name="poll-${pollId}"]:checked`);
-            if (!selected) {
-                alert('Please select an option before voting.');
+            if (!voterId) {
+                msg.textContent = '❌ Please enter your Voter ID.';
+                msg.className = 'complaint-message complaint-message--error';
                 return;
             }
 
-            const card = document.getElementById('vote-card-' + pollId);
-            const btn = card.querySelector('.vote-card__submit-btn');
+            msg.textContent = 'Verifying...';
+            msg.className = 'complaint-message';
+
+            try {
+                const res = await fetch('/api/voter/verify', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ voterId })
+                });
+
+                const data = await res.json();
+
+                if (!res.ok) {
+                    msg.textContent = '❌ ' + data.error;
+                    msg.className = 'complaint-message complaint-message--error';
+                    return;
+                }
+
+                if (data.alreadyVoted) {
+                    msg.textContent = '❌ This Voter ID has already been used to cast a vote.';
+                    msg.className = 'complaint-message complaint-message--error';
+                    return;
+                }
+
+                // Success — show voter info
+                verifiedVoterId = voterId;
+                msg.textContent = '';
+                msg.className = 'complaint-message';
+
+                document.getElementById('vi-name').textContent = data.voter.name;
+                document.getElementById('vi-father').textContent = data.voter.fatherName;
+                document.getElementById('vi-age').textContent = data.voter.age;
+                document.getElementById('vi-gender').textContent = data.voter.gender;
+                document.getElementById('vi-constituency').textContent = data.voter.constituency;
+                document.getElementById('vi-state').textContent = data.voter.state;
+                document.getElementById('voter-info').style.display = 'block';
+
+                // Lock the input
+                input.disabled = true;
+                document.getElementById('verify-voter-btn').disabled = true;
+                document.getElementById('verify-voter-btn').textContent = '✅ Verified';
+                document.getElementById('verify-voter-btn').style.background = '#138808';
+
+            } catch (err) {
+                msg.textContent = '❌ Network error. Is the server running?';
+                msg.className = 'complaint-message complaint-message--error';
+            }
+        }
+
+        // Allow Enter key on voter ID input
+        document.getElementById('voter-id-input').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') verifyVoter();
+        });
+
+
+        // ═══════════════════════════════════════════════════════════
+        //   STEP 2: SHOW BALLOT
+        // ═══════════════════════════════════════════════════════════
+
+        async function showBallot() {
+            document.getElementById('vote-step-1').style.display = 'none';
+            document.getElementById('vote-step-2').style.display = 'block';
+
+            try {
+                const res = await fetch('/api/elections');
+                const data = await res.json();
+
+                if (!data.elections || data.elections.length === 0) {
+                    document.getElementById('election-title').textContent = 'No active elections';
+                    return;
+                }
+
+                const election = data.elections[0]; // Use first active election
+                currentElectionId = election.id;
+
+                document.getElementById('election-title').textContent = election.title;
+                document.getElementById('election-desc').textContent = election.description || '';
+
+                const container = document.getElementById('ballot-options');
+                container.innerHTML = '';
+
+                election.candidates.forEach(candidate => {
+                    const box = document.createElement('div');
+                    box.className = 'vote-option';
+                    box.textContent = candidate;
+                    box.onclick = function () { selectCandidate(this, candidate); };
+                    container.appendChild(box);
+                });
+
+            } catch (err) {
+                document.getElementById('election-title').textContent = 'Failed to load election';
+            }
+        }
+
+        function selectCandidate(el, candidate) {
+            document.querySelectorAll('#ballot-options .vote-option').forEach(opt => {
+                opt.classList.remove('vote-option--selected');
+            });
+            el.classList.add('vote-option--selected');
+            document.getElementById('selected-candidate').value = candidate;
+        }
+
+
+        // ═══════════════════════════════════════════════════════════
+        //   STEP 3: CAST VOTE
+        // ═══════════════════════════════════════════════════════════
+
+        async function castVote() {
+            const candidate = document.getElementById('selected-candidate').value;
+            const msg = document.getElementById('vote-result-message');
+
+            if (!candidate) {
+                alert('Please select a party before submitting.');
+                return;
+            }
+
+            const btn = document.getElementById('submit-vote-btn');
             btn.textContent = 'Submitting...';
             btn.disabled = true;
 
@@ -280,43 +418,36 @@
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        userId: user.id,
-                        pollId: pollId,
-                        candidate: selected.value
+                        voterId: verifiedVoterId,
+                        electionId: currentElectionId,
+                        candidate: candidate
                     })
                 });
 
                 const data = await res.json();
 
                 if (res.ok && data.success) {
-                    btn.textContent = '✅ Vote Recorded!';
-                    btn.style.background = '#138808';
-                    card.querySelectorAll('input[type="radio"]').forEach(r => r.disabled = true);
+                    // Show receipt
+                    document.getElementById('vote-step-2').style.display = 'none';
+                    document.getElementById('vote-step-3').style.display = 'block';
 
-                    const badge = card.querySelector('.vote-card__badge');
-                    badge.textContent = 'Voted';
-                    badge.style.background = '#e6f0ff';
-                    badge.style.color = '#1e88e5';
+                    document.getElementById('receipt-party').textContent = data.candidate;
+                    document.getElementById('receipt-hash').textContent = data.blockchainHash;
+                    document.getElementById('receipt-status').textContent = 'Queued for blockchain confirmation';
+                    document.getElementById('receipt-status').style.color = '#ff9800';
 
-                    // Add to activity
-                    addActivity('🗳️', `Voted on: ${card.querySelector('.vote-card__title').textContent}`, 'Just now');
+                    addActivity('🗳️', `Vote cast for ${data.candidate} (${verifiedVoterId})`, 'Just now');
                 } else {
-                    btn.textContent = '❌ ' + (data.error || 'Vote failed');
-                    btn.style.background = '#cc3333';
-                    setTimeout(() => {
-                        btn.textContent = 'Cast Vote';
-                        btn.style.background = '';
-                        btn.disabled = false;
-                    }, 3000);
+                    msg.textContent = '❌ ' + (data.error || 'Vote failed');
+                    msg.className = 'complaint-message complaint-message--error';
+                    btn.textContent = 'Submit';
+                    btn.disabled = false;
                 }
             } catch (err) {
-                btn.textContent = '❌ Network error';
-                btn.style.background = '#cc3333';
-                setTimeout(() => {
-                    btn.textContent = 'Cast Vote';
-                    btn.style.background = '';
-                    btn.disabled = false;
-                }, 3000);
+                msg.textContent = '❌ Network error';
+                msg.className = 'complaint-message complaint-message--error';
+                btn.textContent = 'Submit';
+                btn.disabled = false;
             }
         }
 
@@ -351,10 +482,7 @@
                     const res = await fetch('/api/complaint', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            userId: user.id,
-                            region, department, level, title, description
-                        })
+                        body: JSON.stringify({ userId: user.id, region, department, level, title, description })
                     });
 
                     const data = await res.json();
@@ -363,14 +491,13 @@
                         complaintMsg.textContent = `✅ Complaint submitted! Tracking ID: ${data.trackingId}`;
                         complaintMsg.className = 'complaint-message complaint-message--success';
                         complaintForm.reset();
-
                         addActivity('📋', `Complaint filed: ${title} (${data.trackingId})`, 'Just now');
                     } else {
                         complaintMsg.textContent = '❌ ' + (data.error || 'Submission failed');
                         complaintMsg.className = 'complaint-message complaint-message--error';
                     }
                 } catch (err) {
-                    complaintMsg.textContent = '❌ Network error. Is the server running?';
+                    complaintMsg.textContent = '❌ Network error.';
                     complaintMsg.className = 'complaint-message complaint-message--error';
                 }
 
@@ -383,6 +510,112 @@
                 complaintMsg.className = 'complaint-message';
             });
         }
+        // ─── Complaint Tracking ──────────────────────────────────
+        let trackingViewOpen = false;
+
+        function toggleComplaintView() {
+            trackingViewOpen = !trackingViewOpen;
+            const btn = document.getElementById('toggle-track-btn');
+            const fileView = document.getElementById('complaint-file-view');
+            const trackView = document.getElementById('complaint-track-view');
+
+            if (trackingViewOpen) {
+                btn.textContent = '← Back to File Complaint';
+                fileView.style.display = 'none';
+                trackView.style.display = 'block';
+                loadComplaints();
+            } else {
+                btn.textContent = 'Track My Complaints →';
+                fileView.style.display = 'block';
+                trackView.style.display = 'none';
+            }
+        }
+
+        const statusMap = {
+            'pending': { text: 'Pending', color: '#f57c00', desc: 'Awaiting review by officials.' },
+            'approve': { text: 'Approved', color: '#388e3c', desc: 'Your complaint has been approved and action is being taken.' },
+            'reject': { text: 'Rejected', color: '#d32f2f', desc: 'Your complaint was reviewed and rejected.' }
+        };
+
+        async function loadComplaints() {
+            const container = document.getElementById('tracker-list-container');
+            container.innerHTML = '<p style="text-align: center; color: var(--color-text-muted); padding: 40px;">Fetching records...</p>';
+
+            try {
+                const res = await fetch(`/api/complaints?userId=${user.id}`);
+                const data = await res.json();
+
+                if (!res.ok) throw new Error(data.error);
+
+                if (!data.complaints || data.complaints.length === 0) {
+                    container.innerHTML = `
+                        <div style="text-align: center; padding: 60px 20px; background: var(--color-white); border-radius: 12px; border: 1px solid var(--color-border);">
+                            <span style="font-size: 3rem; margin-bottom: 16px; display: block;">📋</span>
+                            <h3 style="margin-bottom: 8px;">No Complaints Found</h3>
+                            <p style="color: var(--color-text-muted);">You haven't submitted any complaints yet.</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                let html = '<div style="display: flex; flex-direction: column; gap: 32px; align-items: center;">';
+
+                // Based on user layout request: container, header, section-light, section-gray-split, content
+                data.complaints.forEach(c => {
+                    const st = statusMap[c.status] || statusMap['pending'];
+                    const date = new Date(c.created_at).toLocaleDateString('en-IN', { year: 'numeric', month: 'short', day: 'numeric' });
+                    const trackingId = 'JAN-' + String(c.id).padStart(6, '0');
+
+                    html += `
+                        <div class="tracker-container">
+                            <div class="tracker-header">
+                                <div>
+                                    <h3 style="margin:0; font-size:1.1rem; color:white;">${c.title}</h3>
+                                    <span style="font-size:0.85rem; color:#bbdefb; margin-top:4px; display:block;">Tracking ID: ${trackingId}</span>
+                                </div>
+                                <div style="background:white; color:${st.color}; padding:6px 12px; border-radius:20px; font-weight:700; font-size:0.85rem;">
+                                    ${st.text}
+                                </div>
+                            </div>
+
+                            <div class="tracker-section-light">
+                                <div style="font-weight:600; color:#5c5c5c;">${date}</div>
+                                <div style="color:#7a7a7a;">${c.department.replace('-', ' ')}</div>
+                            </div>
+
+                            <div class="tracker-section-gray-split">
+                                <div>
+                                    <span style="font-size:0.75rem; text-transform:uppercase; letter-spacing:0.05em; color:#6b6b6b;">Region</span>
+                                    <br><strong>${c.region}</strong>
+                                </div>
+                                <div>
+                                    <span style="font-size:0.75rem; text-transform:uppercase; letter-spacing:0.05em; color:#6b6b6b;">Severity</span>
+                                    <br><strong style="text-transform:capitalize;">${c.level}</strong>
+                                </div>
+                            </div>
+
+                            <div class="tracker-content">
+                                <h4 style="margin-top:0; margin-bottom:12px; font-size:0.95rem; color:#4a4a4a;">Complaint Description</h4>
+                                <p style="margin:0; font-size:0.9rem; line-height:1.6; color:#666;">${c.description}</p>
+                                
+                                <div style="margin-top:24px; padding-top:20px; border-top:1px solid #e0e0e0;">
+                                    <h4 style="margin-top:0; margin-bottom:8px; font-size:0.9rem; color:#4a4a4a;">Current Status Updates</h4>
+                                    <p style="margin:0; font-size:0.85rem; color:${st.color}; font-weight:500;">
+                                        ● ${st.desc}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                html += '</div>';
+                container.innerHTML = html;
+
+            } catch (err) {
+                container.innerHTML = '<p style="text-align: center; color: #d32f2f; padding: 40px;">Failed to load complaints. Please try again.</p>';
+            }
+        }
 
 
         // ─── Activity Helper ─────────────────────────────────────
@@ -392,9 +625,7 @@
             item.className = 'activity-item';
             item.innerHTML = `
                 <span class="activity-item__icon">${icon}</span>
-                <div class="activity-item__text">
-                    <strong>${text}</strong>
-                </div>
+                <div class="activity-item__text"><strong>${text}</strong></div>
                 <span class="activity-item__time">${time}</span>
             `;
             list.prepend(item);
