@@ -4,22 +4,23 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login Page UI</title>
+    <title>Login — JanSetu</title>
     <link rel="stylesheet" href="login.css">
 </head>
 
 <body>
 
-    <!-- Top Blue Header -->
+    <!-- Top Header -->
     <div class="header">
         <header class="top-header" id="top-header">
             <div class="top-header__inner">
                 <div class="top-header__logos">
-                    <img src="/Frontend/assets/ashok.png" alt="Government of India Emblem" class="top-header__logo">
-                    <img src="/Frontend/assets/JanSetu.png" alt="JanSetu Logo" class="top-header__logo">
+                    <img src="../assets/ashok.png" alt="Government of India Emblem" class="top-header__logo">
+                    <img src="../assets/JanSetu.png" alt="JanSetu Logo" class="top-header__logo">
                 </div>
                 <div class="top-header__right">
-                    <img src="/Frontend/assets/modiji.png" alt="Honourable Prime Minister" class="top-header__logo">
+                    <img src="../assets/modiji.png" alt="Honourable Prime Minister"
+                        class="top-header__logo top-header__pm">
                 </div>
             </div>
         </header>
@@ -28,25 +29,73 @@
     <!-- Main Container -->
     <div class="container">
 
-        <!-- Two Small Buttons -->
-        <div class="row">
-            <button class="rect small">Login</button>
-            <button class="rect small">Register</button>
-        </div>
+        <h2 class="form-title">LOGIN</h2>
 
-        <!-- Input Fields -->
-        <input type="text" placeholder="Username" class="rect large">
-        <input type="password" placeholder="Password" class="rect large">
+        <!-- Error/Success message -->
+        <div class="message" id="message"></div>
 
-        <!-- Main Button -->
-        <button class="rect medium">Submit</button>
+        <!-- Login Form -->
+        <form id="login-form">
+            <input type="text" id="username" placeholder="Username" class="rect large" required>
+            <input type="password" id="password" placeholder="Password" class="rect large" required>
+            <button type="submit" class="rect medium submit-btn" id="submit-btn">Submit</button>
+        </form>
 
         <!-- Bottom Text -->
         <p class="signup-text">
-            DON'T HAVE A ACCOUNT? <a href="#">SIGN IN</a>
+            DON'T HAVE AN ACCOUNT? <a href="../register/register.html">REGISTER</a>
         </p>
 
     </div>
+
+    <script>
+        const form = document.getElementById('login-form');
+        const messageDiv = document.getElementById('message');
+        const submitBtn = document.getElementById('submit-btn');
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            messageDiv.textContent = '';
+            messageDiv.className = 'message';
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Logging in...';
+
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value;
+
+            try {
+                const res = await fetch('/api/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+
+                const data = await res.json();
+
+                if (res.ok && data.success) {
+                    messageDiv.textContent = '✅ Login successful! Redirecting...';
+                    messageDiv.classList.add('message--success');
+
+                    // Store user info in sessionStorage
+                    sessionStorage.setItem('user', JSON.stringify(data.user));
+
+                    // Redirect to dashboard
+                    setTimeout(() => {
+                        window.location.href = '../dashboard/dashboard.html';
+                    }, 1000);
+                } else {
+                    messageDiv.textContent = '❌ ' + (data.error || 'Login failed');
+                    messageDiv.classList.add('message--error');
+                }
+            } catch (err) {
+                messageDiv.textContent = '❌ Server error. Please try again.';
+                messageDiv.classList.add('message--error');
+            }
+
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Submit';
+        });
+    </script>
 
 </body>
 

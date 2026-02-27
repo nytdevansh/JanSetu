@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register — JanSetu</title>
+    <link rel="stylesheet" href="registerstyle.css">
+</head>
+
+<body>
+
+    <!-- Top Header -->
+    <div class="header">
+        <header class="top-header" id="top-header">
+            <div class="top-header__inner">
+                <div class="top-header__logos">
+                    <img src="../assets/ashok.png" alt="Government of India Emblem" class="top-header__logo">
+                    <img src="../assets/JanSetu.png" alt="JanSetu Logo" class="top-header__logo">
+                </div>
+                <div class="top-header__right">
+                    <img src="../assets/modiji.png" alt="Honourable Prime Minister"
+                        class="top-header__logo top-header__pm">
+                </div>
+            </div>
+        </header>
+    </div>
+
+    <!-- Register Title -->
+    <h2 class="title">REGISTER</h2>
+
+    <!-- Form Container -->
+    <div class="container">
+
+        <!-- Error/Success message -->
+        <div class="message" id="message"></div>
+
+        <form id="register-form">
+
+            <input type="text" id="fullname" placeholder="Full Name" class="rect" required>
+            <input type="email" id="email" placeholder="Email" class="rect" required>
+            <input type="text" id="username" placeholder="Username" class="rect" required>
+            <input type="password" id="password" placeholder="Password" class="rect" required>
+            <input type="password" id="confirm-password" placeholder="Confirm Password" class="rect" required>
+
+            <button type="submit" class="submit-btn" id="submit-btn">Register</button>
+
+        </form>
+
+    </div>
+
+    <script>
+        const form = document.getElementById('register-form');
+        const messageDiv = document.getElementById('message');
+        const submitBtn = document.getElementById('submit-btn');
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            messageDiv.textContent = '';
+            messageDiv.className = 'message';
+
+            const name = document.getElementById('fullname').value.trim();
+            const email = document.getElementById('email').value.trim();
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value;
+            const confirmPassword = document.getElementById('confirm-password').value;
+
+            // Validate passwords match
+            if (password !== confirmPassword) {
+                messageDiv.textContent = '❌ Passwords do not match';
+                messageDiv.classList.add('message--error');
+                return;
+            }
+
+            if (password.length < 4) {
+                messageDiv.textContent = '❌ Password must be at least 4 characters';
+                messageDiv.classList.add('message--error');
+                return;
+            }
+
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Registering...';
+
+            try {
+                const res = await fetch('/api/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password, name, email })
+                });
+
+                const data = await res.json();
+
+                if (res.ok && data.success) {
+                    messageDiv.textContent = '✅ Registration successful! Redirecting to login...';
+                    messageDiv.classList.add('message--success');
+
+                    setTimeout(() => {
+                        window.location.href = '../login/login.HTML';
+                    }, 1500);
+                } else {
+                    messageDiv.textContent = '❌ ' + (data.error || 'Registration failed');
+                    messageDiv.classList.add('message--error');
+                }
+            } catch (err) {
+                messageDiv.textContent = '❌ Server error. Please try again.';
+                messageDiv.classList.add('message--error');
+            }
+
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Register';
+        });
+    </script>
+
+</body>
+
+</html>

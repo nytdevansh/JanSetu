@@ -112,6 +112,12 @@ button {
     width: auto;
 }
 
+.top-header__logo {
+    height: 40px;
+    width: auto;
+    object-fit: contain;
+}
+
 .top-header__brand-text {
     display: flex;
     align-items: center;
@@ -275,6 +281,28 @@ button {
     background: #e68a2e;
     transform: translateY(-1px);
     box-shadow: 0 4px 12px rgba(255, 153, 51, 0.35);
+}
+
+.top-header__register-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 20px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--color-white);
+    background: transparent;
+    border: 1.5px solid rgba(255, 255, 255, 0.5);
+    border-radius: var(--radius);
+    transition: background var(--transition), transform var(--transition), box-shadow var(--transition), border-color var(--transition);
+    white-space: nowrap;
+}
+
+.top-header__register-btn:hover {
+    background: rgba(255, 255, 255, 0.12);
+    border-color: var(--color-white);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(255, 255, 255, 0.15);
 }
 
 .top-header__pm {

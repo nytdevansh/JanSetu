@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard — JanSetu</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="dashboard.css">
+</head>
+
+<body>
+
+    <!-- Header -->
+    <header class="header" id="header">
+        <div class="header__inner">
+            <div class="header__brand">
+                <img src="../assets/ashok.png" alt="Emblem" class="header__emblem">
+                <img src="../assets/JanSetu.png" alt="JanSetu" class="header__logo">
+            </div>
+            <nav class="header__nav">
+                <a href="../index.html" class="header__nav-link">Home</a>
+                <a href="#" class="header__nav-link active">Dashboard</a>
+                <a href="#" class="header__nav-link">My Applications</a>
+                <a href="#" class="header__nav-link">Help</a>
+            </nav>
+            <div class="header__actions">
+                <span class="header__user-name" id="user-greeting">Hello, Citizen</span>
+                <button class="header__logout-btn" id="logout-btn">Logout</button>
+                <img src="../assets/modiji.png" alt="PM" class="header__pm">
+            </div>
+        </div>
+    </header>
+
+    <!-- Welcome Banner -->
+    <section class="welcome-banner" id="welcome-banner">
+        <div class="welcome-banner__inner">
+            <div class="welcome-banner__text">
+                <h1 class="welcome-banner__title">Welcome to <span>JanSetu</span></h1>
+                <p class="welcome-banner__desc">Your gateway to government services, schemes, and digital solutions.
+                    Everything you need — in one place.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Dashboard Main -->
+    <main class="dashboard" id="dashboard">
+        <div class="dashboard__inner">
+
+            <!-- Tab Buttons -->
+            <div class="tab-bar" id="tab-bar">
+                <button class="tab-btn tab-btn--active" data-tab="vote" id="tab-vote-btn">🗳️ Vote
+                    <span class="tab-btn__desc">Cast your vote on government polls &amp; community decisions</span>
+                </button>
+                <br>
+                <button class="tab-btn" data-tab="complaints" id="tab-complaints-btn">📋 Complaints
+                    <span class="tab-btn__desc">Report issues &amp; grievances to the relevant department</span>
+                </button>
+            </div>
+
+            <!-- ====== VOTE TAB ====== -->
+            <section class="tab-content tab-content--active" id="tab-vote">
+                <h2 class="dashboard__section-title">Active Polls &amp; Surveys</h2>
+                <p class="tab-intro">Cast your vote on ongoing government initiatives and community decisions.</p>
+                <div class="vote-grid" id="vote-grid">
+                    <p style="color: #5A6A7A; text-align: center; padding: 40px;">Loading polls...</p>
+                </div>
+            </section>
+
+            <!-- ====== COMPLAINTS TAB ====== -->
+            <section class="tab-content" id="tab-complaints">
+                <h2 class="dashboard__section-title">File a Complaint</h2>
+                <p class="tab-intro">Report issues in your area. Your complaint will be routed to the appropriate
+                    department.</p>
+
+                <div class="complaint-card">
+                    <form id="complaint-form">
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label class="form-label" for="complaint-region">Region</label>
+                                <input class="form-input" type="text" id="complaint-region"
+                                    placeholder="e.g. Delhi, Mumbai..." required>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" for="complaint-department">Department</label>
+                                <select class="form-input" id="complaint-department" required>
+                                    <option value="" disabled selected>Select department</option>
+                                    <option value="public-works">Public Works</option>
+                                    <option value="health">Health</option>
+                                    <option value="education">Education</option>
+                                    <option value="water-supply">Water Supply</option>
+                                    <option value="electricity">Electricity</option>
+                                    <option value="transport">Transport</option>
+                                    <option value="sanitation">Sanitation</option>
+                                    <option value="other">Other</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" for="complaint-level">Level of Problem</label>
+                                <select class="form-input" id="complaint-level" required>
+                                    <option value="" disabled selected>Select severity</option>
+                                    <option value="low">Low</option>
+                                    <option value="medium">Medium</option>
+                                    <option value="high">High</option>
+                                    <option value="critical">Critical</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" for="complaint-title">Title</label>
+                                <input class="form-input" type="text" id="complaint-title"
+                                    placeholder="Brief title of your complaint" required>
+                            </div>
+                        </div>
+                        <div class="form-group" style="margin-top: 16px;">
+                            <label class="form-label" for="complaint-desc">Description</label>
+                            <textarea class="form-input" id="complaint-desc" rows="4"
+                                placeholder="Describe the issue in detail..." required></textarea>
+                        </div>
+                        <div class="form-group" style="margin-top: 16px;">
+                            <label class="form-label" for="complaint-file">Attach Evidence (Audio/Video/Image)</label>
+                            <input class="form-input form-input--file" type="file" id="complaint-file"
+                                accept="image/*,audio/*,video/*">
+                        </div>
+
+                        <div class="complaint-actions">
+                            <button type="submit" class="btn btn--primary" id="complaint-submit-btn">Submit
+                                Complaint</button>
+                            <button type="reset" class="btn btn--secondary">Reset</button>
+                        </div>
+
+                        <div class="complaint-message" id="complaint-message"></div>
+                    </form>
+                </div>
+            </section>
+
+            <!-- Recent Activity -->
+            <h2 class="dashboard__section-title" style="margin-top: 48px;">Recent Activity</h2>
+            <div class="activity-list" id="activity-list">
+                <div class="activity-item">
+                    <span class="activity-item__icon">🟢</span>
+                    <div class="activity-item__text">
+                        <strong>Account Created</strong>
+                        <span>Welcome to JanSetu! Start exploring government services.</span>
+                    </div>
+                    <span class="activity-item__time">Just now</span>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer__inner">
+            <p>&copy; 2026 JanSetu — Ministry of Electronics & IT, Government of India</p>
+        </div>
+    </footer>
+
+    <script>
+        // ─── Auth Check ──────────────────────────────────────────
+        const user = JSON.parse(sessionStorage.getItem('user'));
+
+        if (!user) {
+            window.location.href = '../login/login.HTML';
+        } else {
+            document.getElementById('user-greeting').textContent = 'Hello, ' + (user.name || user.username);
+        }
+
+        // Logout
+        document.getElementById('logout-btn').addEventListener('click', () => {
+            sessionStorage.removeItem('user');
+            window.location.href = '../login/login.HTML';
+        });
+
+
+        // ─── Tab Switching ───────────────────────────────────────
+        const tabBtns = document.querySelectorAll('.tab-btn');
+        const tabContents = document.querySelectorAll('.tab-content');
+
+        tabBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const target = btn.dataset.tab;
+                tabBtns.forEach(b => b.classList.remove('tab-btn--active'));
+                tabContents.forEach(c => c.classList.remove('tab-content--active'));
+                btn.classList.add('tab-btn--active');
+                document.getElementById('tab-' + target).classList.add('tab-content--active');
+            });
+        });
+
+
+        // ─── Load Polls from API ─────────────────────────────────
+        const voteGrid = document.getElementById('vote-grid');
+
+        async function loadPolls() {
+            try {
+                const res = await fetch('/api/polls');
+                const data = await res.json();
+
+                if (!data.polls || data.polls.length === 0) {
+                    voteGrid.innerHTML = '<p style="color:#5A6A7A;text-align:center;padding:40px;">No active polls at the moment.</p>';
+                    return;
+                }
+
+                // Also check which polls user already voted on
+                let userVotes = [];
+                try {
+                    const voteRes = await fetch(`/api/vote/status?userId=${user.id}`);
+                    const voteData = await voteRes.json();
+                    userVotes = (voteData.votes || []).filter(v => v.status !== 'failed');
+                } catch (e) { /* ignore */ }
+
+                const votedPollIds = new Set(userVotes.map(v => v.poll_id));
+
+                voteGrid.innerHTML = '';
+                data.polls.forEach(poll => {
+                    const alreadyVoted = votedPollIds.has(poll.id);
+                    const existingVote = userVotes.find(v => v.poll_id === poll.id);
+
+                    const card = document.createElement('div');
+                    card.className = 'vote-card';
+                    card.id = 'vote-card-' + poll.id;
+
+                    let optionsHTML = '';
+                    poll.candidates.forEach(candidate => {
+                        const checked = (alreadyVoted && existingVote && existingVote.candidate === candidate) ? 'checked' : '';
+                        const disabled = alreadyVoted ? 'disabled' : '';
+                        optionsHTML += `
+                            <label class="vote-option">
+                                <input type="radio" name="poll-${poll.id}" value="${candidate}" ${checked} ${disabled}> ${candidate}
+                            </label>`;
+                    });
+
+                    const btnText = alreadyVoted ? '✅ Vote Recorded!' : 'Cast Vote';
+                    const btnStyle = alreadyVoted ? 'background:#138808;' : '';
+                    const btnDisabled = alreadyVoted ? 'disabled' : '';
+
+                    card.innerHTML = `
+                        <div class="vote-card__badge">${alreadyVoted ? 'Voted' : 'Active'}</div>
+                        <h3 class="vote-card__title">${poll.title}</h3>
+                        <p class="vote-card__desc">${poll.description || ''}</p>
+                        <div class="vote-card__options">${optionsHTML}</div>
+                        <button class="vote-card__submit-btn" style="${btnStyle}" ${btnDisabled} onclick="submitVote(${poll.id})">${btnText}</button>
+                    `;
+
+                    if (alreadyVoted) {
+                        const badge = card.querySelector('.vote-card__badge');
+                        badge.style.background = '#e6f0ff';
+                        badge.style.color = '#1e88e5';
+                    }
+
+                    voteGrid.appendChild(card);
+                });
+
+            } catch (err) {
+                console.error('Failed to load polls:', err);
+                voteGrid.innerHTML = '<p style="color:#cc3333;text-align:center;padding:40px;">Failed to load polls. Is the server running?</p>';
+            }
+        }
+
+        loadPolls();
+
+
+        // ─── Vote Submission ─────────────────────────────────────
+        async function submitVote(pollId) {
+            const selected = document.querySelector(`input[name="poll-${pollId}"]:checked`);
+            if (!selected) {
+                alert('Please select an option before voting.');
+                return;
+            }
+
+            const card = document.getElementById('vote-card-' + pollId);
+            const btn = card.querySelector('.vote-card__submit-btn');
+            btn.textContent = 'Submitting...';
+            btn.disabled = true;
+
+            try {
+                const res = await fetch('/api/vote', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        userId: user.id,
+                        pollId: pollId,
+                        candidate: selected.value
+                    })
+                });
+
+                const data = await res.json();
+
+                if (res.ok && data.success) {
+                    btn.textContent = '✅ Vote Recorded!';
+                    btn.style.background = '#138808';
+                    card.querySelectorAll('input[type="radio"]').forEach(r => r.disabled = true);
+
+                    const badge = card.querySelector('.vote-card__badge');
+                    badge.textContent = 'Voted';
+                    badge.style.background = '#e6f0ff';
+                    badge.style.color = '#1e88e5';
+
+                    // Add to activity
+                    addActivity('🗳️', `Voted on: ${card.querySelector('.vote-card__title').textContent}`, 'Just now');
+                } else {
+                    btn.textContent = '❌ ' + (data.error || 'Vote failed');
+                    btn.style.background = '#cc3333';
+                    setTimeout(() => {
+                        btn.textContent = 'Cast Vote';
+                        btn.style.background = '';
+                        btn.disabled = false;
+                    }, 3000);
+                }
+            } catch (err) {
+                btn.textContent = '❌ Network error';
+                btn.style.background = '#cc3333';
+                setTimeout(() => {
+                    btn.textContent = 'Cast Vote';
+                    btn.style.background = '';
+                    btn.disabled = false;
+                }, 3000);
+            }
+        }
+
+
+        // ─── Complaint Form ──────────────────────────────────────
+        const complaintForm = document.getElementById('complaint-form');
+        const complaintMsg = document.getElementById('complaint-message');
+
+        if (complaintForm) {
+            complaintForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                complaintMsg.textContent = '';
+                complaintMsg.className = 'complaint-message';
+
+                const region = document.getElementById('complaint-region').value.trim();
+                const department = document.getElementById('complaint-department').value;
+                const level = document.getElementById('complaint-level').value;
+                const title = document.getElementById('complaint-title').value.trim();
+                const description = document.getElementById('complaint-desc').value.trim();
+
+                if (!region || !department || !level || !title || !description) {
+                    complaintMsg.textContent = '❌ Please fill in all required fields.';
+                    complaintMsg.className = 'complaint-message complaint-message--error';
+                    return;
+                }
+
+                const submitBtn = document.getElementById('complaint-submit-btn');
+                submitBtn.disabled = true;
+                submitBtn.textContent = 'Submitting...';
+
+                try {
+                    const res = await fetch('/api/complaint', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            userId: user.id,
+                            region, department, level, title, description
+                        })
+                    });
+
+                    const data = await res.json();
+
+                    if (res.ok && data.success) {
+                        complaintMsg.textContent = `✅ Complaint submitted! Tracking ID: ${data.trackingId}`;
+                        complaintMsg.className = 'complaint-message complaint-message--success';
+                        complaintForm.reset();
+
+                        addActivity('📋', `Complaint filed: ${title} (${data.trackingId})`, 'Just now');
+                    } else {
+                        complaintMsg.textContent = '❌ ' + (data.error || 'Submission failed');
+                        complaintMsg.className = 'complaint-message complaint-message--error';
+                    }
+                } catch (err) {
+                    complaintMsg.textContent = '❌ Network error. Is the server running?';
+                    complaintMsg.className = 'complaint-message complaint-message--error';
+                }
+
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Submit Complaint';
+            });
+
+            complaintForm.addEventListener('reset', () => {
+                complaintMsg.textContent = '';
+                complaintMsg.className = 'complaint-message';
+            });
+        }
+
+
+        // ─── Activity Helper ─────────────────────────────────────
+        function addActivity(icon, text, time) {
+            const list = document.getElementById('activity-list');
+            const item = document.createElement('div');
+            item.className = 'activity-item';
+            item.innerHTML = `
+                <span class="activity-item__icon">${icon}</span>
+                <div class="activity-item__text">
+                    <strong>${text}</strong>
+                </div>
+                <span class="activity-item__time">${time}</span>
+            `;
+            list.prepend(item);
+        }
+    </script>
+
+</body>
+
+</html>

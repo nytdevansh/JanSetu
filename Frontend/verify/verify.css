@@ -1,0 +1,448 @@
+/* ─── Tokens ──────────────────────────────────────────── */
+:root {
+    --font-primary: 'Inter', system-ui, sans-serif;
+    --color-text: #1A2B3C;
+    --color-text-muted: #5A6A7A;
+    --color-white: #FFFFFF;
+    --color-off-white: #F4F6F8;
+    --color-border: #DEE3E8;
+    --color-teal: #2A5A5E;
+    --color-teal-dark: #1E4347;
+    --color-header-bg: #1B2838;
+    --radius: 8px;
+    --radius-lg: 14px;
+    --shadow-card: 0 4px 20px rgba(0, 0, 0, 0.08);
+    --transition: 0.25s ease;
+}
+
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: var(--font-primary);
+    background: var(--color-off-white);
+    color: var(--color-text);
+    line-height: 1.5;
+}
+
+/* ─── Header ──────────────────────────────────────────── */
+.header {
+    background: var(--color-header-bg);
+    padding: 14px 32px;
+}
+
+.header__inner {
+    max-width: 1100px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
+.header__brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.header__emblem {
+    height: 34px;
+}
+
+.header__logo {
+    height: 28px;
+}
+
+.header__title {
+    flex: 1;
+}
+
+.header__title h1 {
+    color: var(--color-white);
+    font-size: 1rem;
+    font-weight: 600;
+}
+
+.header__nav {
+    display: flex;
+    gap: 16px;
+}
+
+.header__nav-link {
+    color: rgba(255, 255, 255, 0.7);
+    text-decoration: none;
+    font-size: 0.85rem;
+    font-weight: 500;
+    transition: color var(--transition);
+}
+
+.header__nav-link:hover {
+    color: white;
+}
+
+
+/* ─── Trust Banner ────────────────────────────────────── */
+.trust-banner {
+    background: linear-gradient(135deg, #e6f9e6, #d4f0ff);
+    border-bottom: 2px solid #b8e6b8;
+    padding: 20px 32px;
+}
+
+.trust-banner__inner {
+    max-width: 1100px;
+    margin: 0 auto;
+    text-align: center;
+}
+
+.trust-banner h2 {
+    font-size: 1.1rem;
+    color: #138808;
+    margin-bottom: 6px;
+}
+
+.trust-banner p {
+    font-size: 0.88rem;
+    color: var(--color-text-muted);
+}
+
+
+/* ─── Main ────────────────────────────────────────────── */
+.verify-main {
+    max-width: 1100px;
+    margin: 32px auto;
+    padding: 0 32px;
+}
+
+
+/* ─── Mode Bar ────────────────────────────────────────── */
+.mode-bar {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 32px;
+}
+
+.mode-btn {
+    flex: 1;
+    padding: 16px;
+    font-family: var(--font-primary);
+    font-size: 0.95rem;
+    font-weight: 600;
+    text-align: center;
+    color: var(--color-text-muted);
+    background: var(--color-white);
+    border: 2px solid var(--color-border);
+    border-radius: 25px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.mode-btn:hover {
+    border-color: #1e88e5;
+    color: var(--color-text);
+}
+
+.mode-btn--active {
+    color: var(--color-white);
+    background: #1e88e5;
+    border-color: #1e88e5;
+    transform: scale(1.02);
+    box-shadow: 0 4px 12px rgba(30, 136, 229, 0.3);
+}
+
+/* ─── Results Sections ────────────────────────────────── */
+.results-section {
+    display: none;
+}
+
+.results-section--active {
+    display: block;
+    animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.results-title {
+    font-size: 1.2rem;
+    margin-bottom: 24px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.results-badge {
+    font-size: 0.7rem;
+    font-weight: 700;
+    padding: 4px 12px;
+    border-radius: 20px;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+.results-badge--db {
+    background: #e6f0ff;
+    color: #1e88e5;
+}
+
+.results-badge--chain {
+    background: #f0e6ff;
+    color: #7c3aed;
+}
+
+
+/* ─── Result Cards ────────────────────────────────────── */
+.result-card {
+    background: var(--color-white);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    padding: 28px;
+    margin-bottom: 20px;
+    transition: box-shadow var(--transition);
+}
+
+.result-card:hover {
+    box-shadow: var(--shadow-card);
+}
+
+.result-card--chain {
+    border-color: #d4b8ff;
+    border-width: 2px;
+}
+
+.result-card__title {
+    font-size: 1.05rem;
+    font-weight: 700;
+    margin-bottom: 6px;
+}
+
+.result-card__desc {
+    font-size: 0.85rem;
+    color: var(--color-text-muted);
+    margin-bottom: 12px;
+}
+
+.result-card__total {
+    font-size: 0.85rem;
+    color: var(--color-text-muted);
+    margin-bottom: 16px;
+}
+
+.result-card__bars {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+/* ─── Bar Chart Rows ──────────────────────────────────── */
+.bar-row {
+    display: grid;
+    grid-template-columns: 180px 1fr 100px;
+    align-items: center;
+    gap: 12px;
+}
+
+.bar-label {
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--color-text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.bar-track {
+    height: 24px;
+    background: var(--color-off-white);
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1px solid var(--color-border);
+}
+
+.bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #1e88e5, #42a5f5);
+    border-radius: 12px;
+    transition: width 0.6s ease;
+    min-width: 0;
+}
+
+.bar-track--chain {
+    border-color: #d4b8ff;
+}
+
+.bar-fill--chain {
+    background: linear-gradient(90deg, #7c3aed, #a78bfa);
+}
+
+.bar-count {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--color-text-muted);
+    text-align: right;
+}
+
+
+/* ─── Chain Config ────────────────────────────────────── */
+.chain-config {
+    background: var(--color-white);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    padding: 20px;
+    margin-bottom: 24px;
+}
+
+.chain-config__row {
+    display: flex;
+    gap: 10px;
+    margin-top: 8px;
+}
+
+.form-label {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--color-text);
+}
+
+.form-input {
+    flex: 1;
+    padding: 10px 14px;
+    font-family: var(--font-primary);
+    font-size: 0.88rem;
+    color: var(--color-text);
+    background: var(--color-off-white);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    outline: none;
+    transition: border-color var(--transition);
+}
+
+.form-input:focus {
+    border-color: #1e88e5;
+    box-shadow: 0 0 0 3px rgba(30, 136, 229, 0.12);
+}
+
+.btn {
+    padding: 10px 24px;
+    font-family: var(--font-primary);
+    font-size: 0.88rem;
+    font-weight: 600;
+    border: none;
+    border-radius: var(--radius);
+    cursor: pointer;
+    transition: all var(--transition);
+}
+
+.btn--primary {
+    color: var(--color-white);
+    background: #1e88e5;
+}
+
+.btn--primary:hover {
+    background: #1976d2;
+    transform: translateY(-1px);
+}
+
+/* ─── Chain Info ──────────────────────────────────────── */
+.chain-info {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+}
+
+.chain-badge {
+    font-size: 0.78rem;
+    font-weight: 700;
+    padding: 4px 12px;
+    border-radius: 20px;
+}
+
+.chain-badge--active {
+    background: #e6f9e6;
+    color: #138808;
+}
+
+.chain-badge--ended {
+    background: #fce8e8;
+    color: #cc3333;
+}
+
+.chain-link {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: #7c3aed;
+    text-decoration: none;
+}
+
+.chain-link:hover {
+    text-decoration: underline;
+}
+
+
+/* ─── Loading ─────────────────────────────────────────── */
+.loading-text {
+    color: var(--color-text-muted);
+    text-align: center;
+    padding: 40px 20px;
+    font-size: 0.9rem;
+}
+
+
+/* ─── Footer ──────────────────────────────────────────── */
+.footer {
+    background: var(--color-header-bg);
+    color: rgba(255, 255, 255, 0.6);
+    text-align: center;
+    padding: 20px 32px;
+    margin-top: 48px;
+    font-size: 0.82rem;
+}
+
+.footer__note {
+    margin-top: 4px;
+    font-size: 0.75rem;
+    opacity: 0.6;
+}
+
+
+/* ─── Responsive ──────────────────────────────────────── */
+@media (max-width: 700px) {
+    .header__inner {
+        flex-wrap: wrap;
+    }
+
+    .header__title h1 {
+        font-size: 0.9rem;
+    }
+
+    .mode-bar {
+        flex-direction: column;
+    }
+
+    .bar-row {
+        grid-template-columns: 1fr;
+        gap: 4px;
+    }
+
+    .bar-count {
+        text-align: left;
+    }
+
+    .chain-config__row {
+        flex-direction: column;
+    }
+}

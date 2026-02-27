@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verify Results — JanSetu</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="verify.css">
+</head>
+
+<body>
+
+    <!-- Header -->
+    <header class="header">
+        <div class="header__inner">
+            <div class="header__brand">
+                <img src="../assets/ashok.png" alt="Emblem" class="header__emblem">
+                <img src="../assets/JanSetu.png" alt="JanSetu" class="header__logo">
+            </div>
+            <div class="header__title">
+                <h1>🔍 Public Verification Dashboard</h1>
+            </div>
+            <nav class="header__nav">
+                <a href="../index.html" class="header__nav-link">Home</a>
+                <a href="../dashboard/dashboard.html" class="header__nav-link">Dashboard</a>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Trust Banner -->
+    <section class="trust-banner">
+        <div class="trust-banner__inner">
+            <h2>🛡️ Trustless Verification</h2>
+            <p>This page reads results <strong>directly from the Polygon blockchain</strong>. No backend is involved —
+                you can independently verify the tally is correct.</p>
+        </div>
+    </section>
+
+    <!-- Main Content -->
+    <main class="verify-main">
+
+        <!-- Mode Selector -->
+        <div class="mode-bar">
+            <button class="mode-btn mode-btn--active" data-mode="db" id="mode-db-btn">📊 Database Results</button>
+            <button class="mode-btn" data-mode="chain" id="mode-chain-btn">⛓️ On-Chain Results</button>
+        </div>
+
+        <!-- DB Results (always works, reads from backend API) -->
+        <section class="results-section results-section--active" id="results-db">
+            <h2 class="results-title">Poll Results <span class="results-badge results-badge--db">from Database</span>
+            </h2>
+            <div id="db-results-container">
+                <p class="loading-text">Loading poll results...</p>
+            </div>
+        </section>
+
+        <!-- On-Chain Results (requires contract address) -->
+        <section class="results-section" id="results-chain">
+            <h2 class="results-title">On-Chain Results <span class="results-badge results-badge--chain">from
+                    Polygon</span></h2>
+
+            <div class="chain-config">
+                <label class="form-label">Contract Address</label>
+                <div class="chain-config__row">
+                    <input type="text" id="contract-address" class="form-input" placeholder="0x...">
+                    <button class="btn btn--primary" id="load-chain-btn" onclick="loadChainResults()">Load</button>
+                </div>
+            </div>
+
+            <div id="chain-results-container">
+                <p class="loading-text">Enter a contract address and click Load to verify on-chain results.</p>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer__inner">
+            <p>&copy; 2026 JanSetu — Ministry of Electronics & IT, Government of India</p>
+            <p class="footer__note">Results are read directly from the blockchain. No backend involvement.</p>
+        </div>
+    </footer>
+
+    <!-- ethers.js CDN for direct blockchain reads -->
+    <script src="https://cdn.jsdelivr.net/npm/ethers@6/dist/ethers.min.js"></script>
+
+    <script>
+        // ─── Mode Switching ──────────────────────────────────────
+        const modeBtns = document.querySelectorAll('.mode-btn');
+        const sections = document.querySelectorAll('.results-section');
+
+        modeBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                modeBtns.forEach(b => b.classList.remove('mode-btn--active'));
+                sections.forEach(s => s.classList.remove('results-section--active'));
+                btn.classList.add('mode-btn--active');
+                document.getElementById('results-' + btn.dataset.mode).classList.add('results-section--active');
+            });
+        });
+
+
+        // ─── Load DB Results ─────────────────────────────────────
+        const dbContainer = document.getElementById('db-results-container');
+
+        async function loadDbResults() {
+            try {
+                const pollsRes = await fetch('/api/polls');
+                const pollsData = await pollsRes.json();
+
+                if (!pollsData.polls || pollsData.polls.length === 0) {
+                    dbContainer.innerHTML = '<p class="loading-text">No polls found.</p>';
+                    return;
+                }
+
+                let html = '';
+                for (const poll of pollsData.polls) {
+                    const resultsRes = await fetch(`/api/polls/${poll.id}/results`);
+                    const resultsData = await resultsRes.json();
+
+                    const totalVotes = resultsData.totalVotes || 0;
+
+                    html += `
+                        <div class="result-card">
+                            <h3 class="result-card__title">${poll.title}</h3>
+                            <p class="result-card__desc">${poll.description || ''}</p>
+                            <p class="result-card__total">Total votes: <strong>${totalVotes}</strong></p>
+                            <div class="result-card__bars">`;
+
+                    for (const [candidate, votes] of Object.entries(resultsData.results || {})) {
+                        const pct = totalVotes > 0 ? ((votes / totalVotes) * 100).toFixed(1) : 0;
+                        html += `
+                                <div class="bar-row">
+                                    <span class="bar-label">${candidate}</span>
+                                    <div class="bar-track">
+                                        <div class="bar-fill" style="width: ${pct}%"></div>
+                                    </div>
+                                    <span class="bar-count">${votes} (${pct}%)</span>
+                                </div>`;
+                    }
+
+                    html += `
+                            </div>
+                        </div>`;
+                }
+
+                dbContainer.innerHTML = html;
+
+            } catch (err) {
+                dbContainer.innerHTML = `<p class="loading-text" style="color:#cc3333;">Failed to load results. Is the server running?</p>`;
+            }
+        }
+
+        loadDbResults();
+
+
+        // ─── Load On-Chain Results ────────────────────────────────
+        const chainContainer = document.getElementById('chain-results-container');
+
+        async function loadChainResults() {
+            const contractAddr = document.getElementById('contract-address').value.trim();
+            if (!contractAddr) {
+                alert('Please enter a contract address');
+                return;
+            }
+
+            chainContainer.innerHTML = '<p class="loading-text">Connecting to Polygon...</p>';
+
+            try {
+                const provider = new ethers.JsonRpcProvider('https://rpc-amoy.polygon.technology');
+
+                const abi = [
+                    'function getResults() external view returns (string[] memory names, uint256[] memory votes)',
+                    'function totalVotes() external view returns (uint256)',
+                    'function electionActive() external view returns (bool)',
+                    'function admin() external view returns (address)'
+                ];
+
+                const contract = new ethers.Contract(contractAddr, abi, provider);
+
+                const [names, votes] = await contract.getResults();
+                const totalVotes = await contract.totalVotes();
+                const isActive = await contract.electionActive();
+
+                let html = `
+                    <div class="result-card result-card--chain">
+                        <div class="chain-info">
+                            <span class="chain-badge ${isActive ? 'chain-badge--active' : 'chain-badge--ended'}">${isActive ? '🟢 Active' : '🔴 Ended'}</span>
+                            <a href="https://amoy.polygonscan.com/address/${contractAddr}" target="_blank" class="chain-link">View on PolygonScan ↗</a>
+                        </div>
+                        <h3 class="result-card__title">On-Chain Tally</h3>
+                        <p class="result-card__total">Total votes: <strong>${totalVotes.toString()}</strong></p>
+                        <div class="result-card__bars">`;
+
+                const total = Number(totalVotes);
+                for (let i = 0; i < names.length; i++) {
+                    const v = Number(votes[i]);
+                    const pct = total > 0 ? ((v / total) * 100).toFixed(1) : 0;
+                    html += `
+                            <div class="bar-row">
+                                <span class="bar-label">${names[i]}</span>
+                                <div class="bar-track bar-track--chain">
+                                    <div class="bar-fill bar-fill--chain" style="width: ${pct}%"></div>
+                                </div>
+                                <span class="bar-count">${v} (${pct}%)</span>
+                            </div>`;
+                }
+
+                html += `
+                        </div>
+                    </div>`;
+
+                chainContainer.innerHTML = html;
+
+            } catch (err) {
+                chainContainer.innerHTML = `<p class="loading-text" style="color:#cc3333;">Failed to read contract: ${err.message}</p>`;
+            }
+        }
+    </script>
+
+</body>
+
+</html>
