@@ -6,7 +6,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Register — JanSetu</title>
     <link rel="stylesheet" href="registerstyle.css">
-    <script src="https://www.google.com/recaptcha/api.js" async defer></script>
 </head>
 
 <body>
@@ -46,14 +45,6 @@
             <input type="text" id="username" placeholder="Username" class="rect" required>
             <input type="password" id="password" placeholder="Password" class="rect" required>
             <input type="password" id="confirm-password" placeholder="Confirm Password" class="rect" required>
-
-            <!-- reCAPTCHA widget -->
-            <div style="margin: 12px 0; display:flex; justify-content:center;">
-                <div class="g-recaptcha" data-sitekey="6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI"
-                    id="register-recaptcha">
-                </div>
-            </div>
-
             <button type="submit" class="submit-btn" id="submit-btn">Register</button>
 
         </form>
@@ -91,15 +82,6 @@
                 messageDiv.classList.add('message--error');
                 return;
             }
-
-            // reCAPTCHA check
-            const recaptchaToken = grecaptcha.getResponse();
-            if (!recaptchaToken) {
-                messageDiv.textContent = '❌ Please complete the reCAPTCHA verification.';
-                messageDiv.classList.add('message--error');
-                return;
-            }
-
             submitBtn.disabled = true;
             submitBtn.textContent = 'Registering...';
 
@@ -107,7 +89,7 @@
                 const res = await fetch('/api/register', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ username, password, name, email, recaptchaToken })
+                    body: JSON.stringify({ username, password, name, email })
                 });
 
                 const data = await res.json();
@@ -127,10 +109,8 @@
                 messageDiv.textContent = '❌ Server error. Please try again.';
                 messageDiv.classList.add('message--error');
             }
-
             submitBtn.disabled = false;
             submitBtn.textContent = 'Register';
-            grecaptcha.reset();
         });
 
         const emailInput = document.getElementById('email');

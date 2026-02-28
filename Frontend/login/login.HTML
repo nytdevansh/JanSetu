@@ -6,7 +6,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login — JanSetu</title>
     <link rel="stylesheet" href="login.css">
-    <script src="https://www.google.com/recaptcha/api.js" async defer></script>
 </head>
 
 <body>
@@ -40,12 +39,6 @@
             <input type="text" id="username" placeholder="Username" class="rect large" required>
             <input type="password" id="password" placeholder="Password" class="rect large" required>
 
-            <!-- reCAPTCHA widget -->
-            <div style="margin: 12px 0; display:flex; justify-content:center;">
-                <div class="g-recaptcha" data-sitekey="6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI" id="login-recaptcha">
-                </div>
-            </div>
-
             <button type="submit" class="rect medium submit-btn" id="submit-btn">Submit</button>
         </form>
 
@@ -71,21 +64,11 @@
             const username = document.getElementById('username').value.trim();
             const password = document.getElementById('password').value;
 
-            // reCAPTCHA check
-            const recaptchaToken = grecaptcha.getResponse();
-            if (!recaptchaToken) {
-                messageDiv.textContent = '❌ Please complete the reCAPTCHA verification.';
-                messageDiv.classList.add('message--error');
-                submitBtn.disabled = false;
-                submitBtn.textContent = 'Submit';
-                return;
-            }
-
             try {
                 const res = await fetch('/api/login', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ username, password, recaptchaToken })
+                    body: JSON.stringify({ username, password })
                 });
 
                 const data = await res.json();
@@ -109,8 +92,6 @@
                 messageDiv.textContent = '❌ Server error. Please try again.';
                 messageDiv.classList.add('message--error');
             }
-
-            grecaptcha.reset();
             submitBtn.disabled = false;
             submitBtn.textContent = 'Submit';
         });

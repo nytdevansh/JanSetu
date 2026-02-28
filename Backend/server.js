@@ -94,22 +94,7 @@ function dbQuery(sql, params) {
     });
 }
 
-// ── reCAPTCHA Server-Side Verification ───────────────────────────────
-// Google test secret always passes — swap RECAPTCHA_SECRET in .env for production
-const RECAPTCHA_SECRET = process.env.RECAPTCHA_SECRET || '6LeIxAcTAAAAAGG-vFI1TnRWxMZNFuojJ9GsSRy6';
-
-async function verifyRecaptcha(token) {
-    if (!token) return false;
-    try {
-        const response = await axios.post(
-            `https://www.google.com/recaptcha/api/siteverify?secret=${RECAPTCHA_SECRET}&response=${token}`
-        );
-        return response.data && response.data.success === true;
-    } catch (err) {
-        console.error('⚠️ reCAPTCHA verify error:', err.message);
-        return false;
-    }
-}
+// RECAPTCHA Server-Side Verification disabled
 
 function hashVoterId(voterId) {
     return '0x' + crypto.createHash('sha256').update(voterId + VOTE_SALT).digest('hex');
@@ -125,12 +110,8 @@ app.get('/api/health', (req, res) => {
 });
 
 app.post('/api/login', async (req, res) => {
-    const { username, password, recaptchaToken } = req.body;
+    const { username, password } = req.body;
     if (!username || !password) return res.status(400).json({ error: 'Username and password are required' });
-
-    // Verify reCAPTCHA
-    const captchaOk = await verifyRecaptcha(recaptchaToken);
-    if (!captchaOk) return res.status(400).json({ error: 'reCAPTCHA verification failed. Please try again.' });
 
     db.query('SELECT * FROM users WHERE username = ? AND password = ?', [username, password], (err, results) => {
         if (err) return res.status(500).json({ error: 'Internal server error' });
@@ -146,12 +127,8 @@ app.post('/api/login', async (req, res) => {
 });
 
 app.post('/api/register', async (req, res) => {
-    const { username, password, name, email, recaptchaToken } = req.body;
+    const { username, password, name, email } = req.body;
     if (!username || !password) return res.status(400).json({ error: 'Username and password are required' });
-
-    // Verify reCAPTCHA
-    const captchaOk = await verifyRecaptcha(recaptchaToken);
-    if (!captchaOk) return res.status(400).json({ error: 'reCAPTCHA verification failed. Please try again.' });
 
     db.query('INSERT INTO users (username, password, name, email) VALUES (?, ?, ?, ?)',
         [username, password, name || username, email || null], (err, result) => {
