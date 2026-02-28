@@ -63,14 +63,14 @@
             <!-- ====== VOTE TAB ====== -->
             <section class="tab-content tab-content--active" id="tab-vote">
 
-                <!-- Step 1: Enter Voter ID -->
+                <!-- Step 1: Enter Aadhaar No. -->
                 <div id="vote-step-1" class="vote-step">
-                    <h2 class="dashboard__section-title">Voter ID Verification</h2>
-                    <p class="tab-intro">Enter your Voter ID to verify your eligibility and cast your vote.</p>
+                    <h2 class="dashboard__section-title">Aadhaar Verification</h2>
+                    <p class="tab-intro">Enter your Aadhaar No. to verify your eligibility and cast your vote.</p>
 
                     <div class="voter-id-card">
                         <div class="form-group">
-                            <label class="form-label" for="voter-id-input">Voter ID</label>
+                            <label class="form-label" for="voter-id-input">Aadhaar No.</label>
                             <input class="form-input" type="text" id="voter-id-input" placeholder="e.g. VOT-100001"
                                 style="text-transform: uppercase;">
                         </div>
@@ -92,14 +92,34 @@
                             <div><strong>Constituency:</strong> <span id="vi-constituency"></span></div>
                             <div><strong>State:</strong> <span id="vi-state"></span></div>
                         </div>
-                        <button class="btn btn--primary" onclick="showBallot()" style="margin-top: 20px;">
-                            Proceed to Ballot →
+                        <button class="btn btn--primary" onclick="generateOtp()" style="margin-top: 20px;">
+                            Proceed Request OTP →
                         </button>
                     </div>
                 </div>
 
-                <!-- Step 2: Ballot (party selection) -->
+                <!-- Step 2: OTP Verification -->
                 <div id="vote-step-2" class="vote-step" style="display: none;">
+                    <h2 class="dashboard__section-title">OTP Verification</h2>
+                    <p class="tab-intro" id="otp-instruction-text">We've sent an SMS with a 6-digit OTP to your
+                        registered mobile number.</p>
+
+                    <div class="voter-id-card">
+                        <div class="form-group">
+                            <label class="form-label" for="otp-input">Enter OTP</label>
+                            <input class="form-input" type="text" id="otp-input" placeholder="e.g. 123456"
+                                maxlength="6">
+                        </div>
+                        <button class="btn btn--primary" id="verify-otp-btn" onclick="verifyOtp()"
+                            style="margin-top: 16px;">
+                            Verify OTP
+                        </button>
+                        <div id="otp-message" class="complaint-message" style="margin-top: 12px;"></div>
+                    </div>
+                </div>
+
+                <!-- Step 3: Ballot (party selection) -->
+                <div id="vote-step-3" class="vote-step" style="display: none;">
                     <h2 class="dashboard__section-title" id="election-title">Loading...</h2>
                     <p class="tab-intro" id="election-desc"></p>
 
@@ -113,8 +133,8 @@
                     <div id="vote-result-message" class="complaint-message" style="margin-top: 16px;"></div>
                 </div>
 
-                <!-- Step 3: Vote Receipt -->
-                <div id="vote-step-3" class="vote-step" style="display: none;">
+                <!-- Step 4: Vote Receipt -->
+                <div id="vote-step-4" class="vote-step" style="display: none;">
                     <div class="receipt-card">
                         <h2 style="color: #138808; margin-bottom: 12px;">✅ Vote Recorded Successfully!</h2>
                         <p style="margin-bottom: 20px; color: var(--color-text-muted);">Your vote has been queued for
@@ -158,9 +178,19 @@
                         <form id="complaint-form">
                             <div class="form-grid">
                                 <div class="form-group">
-                                    <label class="form-label" for="complaint-region">Region</label>
+                                    <label class="form-label" for="complaint-region">Region / City</label>
                                     <input class="form-input" type="text" id="complaint-region"
                                         placeholder="e.g. Delhi, Mumbai..." required>
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label" for="complaint-area">Area / Locality</label>
+                                    <input class="form-input" type="text" id="complaint-area"
+                                        placeholder="e.g. Connaught Place, Andheri West" required>
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label" for="complaint-landmark">Landmark</label>
+                                    <input class="form-input" type="text" id="complaint-landmark"
+                                        placeholder="e.g. Near State Bank ATM, opposite park" required>
                                 </div>
                                 <div class="form-group">
                                     <label class="form-label" for="complaint-department">Department</label>
@@ -279,7 +309,7 @@
 
 
         // ═══════════════════════════════════════════════════════════
-        //   STEP 1: VOTER ID VERIFICATION
+        //   STEP 1: AADHAAR VERIFICATION
         // ═══════════════════════════════════════════════════════════
 
         async function verifyVoter() {
@@ -288,7 +318,7 @@
             const voterId = input.value.trim().toUpperCase();
 
             if (!voterId) {
-                msg.textContent = '❌ Please enter your Voter ID.';
+                msg.textContent = '❌ Please enter your Aadhaar No.';
                 msg.className = 'complaint-message complaint-message--error';
                 return;
             }
@@ -349,12 +379,103 @@
 
 
         // ═══════════════════════════════════════════════════════════
+        //   STEP 1.5: OTP VERIFICATION
+        // ═══════════════════════════════════════════════════════════
+
+        async function generateOtp() {
+            const msg = document.getElementById('voter-message');
+            msg.textContent = 'Sending OTP...';
+            msg.className = 'complaint-message';
+
+            try {
+                const res = await fetch('/api/voter/generate-otp', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ voterId: verifiedVoterId })
+                });
+
+                const data = await res.json();
+
+                if (!res.ok) {
+                    msg.textContent = '❌ ' + (data.error || 'Failed to send OTP.');
+                    msg.className = 'complaint-message complaint-message--error';
+                    return;
+                }
+
+                // Show Step 2 (OTP)
+                document.getElementById('vote-step-1').style.display = 'none';
+                document.getElementById('vote-step-2').style.display = 'block';
+                document.getElementById('otp-instruction-text').textContent =
+                    `We've sent an SMS with a 6-digit OTP to the mobile number registered for Voter ID ${verifiedVoterId}.`;
+
+                // Focus on OTP input
+                setTimeout(() => document.getElementById('otp-input').focus(), 100);
+
+            } catch (err) {
+                msg.textContent = '❌ Network error while generating OTP.';
+                msg.className = 'complaint-message complaint-message--error';
+            }
+        }
+
+        async function verifyOtp() {
+            const input = document.getElementById('otp-input');
+            const msg = document.getElementById('otp-message');
+            const otp = input.value.trim();
+
+            if (!otp || otp.length < 6) {
+                msg.textContent = '❌ Please enter the full 6-digit OTP.';
+                msg.className = 'complaint-message complaint-message--error';
+                return;
+            }
+
+            msg.textContent = 'Verifying OTP...';
+            msg.className = 'complaint-message';
+            document.getElementById('verify-otp-btn').disabled = true;
+
+            try {
+                const res = await fetch('/api/voter/verify-otp', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ voterId: verifiedVoterId, otp })
+                });
+
+                const data = await res.json();
+
+                if (!res.ok) {
+                    msg.textContent = '❌ ' + (data.error || 'Invalid OTP');
+                    msg.className = 'complaint-message complaint-message--error';
+                    document.getElementById('verify-otp-btn').disabled = false;
+                    return;
+                }
+
+                // Success — show ballot
+                msg.textContent = '✅ OTP Verified!';
+                msg.className = 'complaint-message complaint-message--success';
+
+                setTimeout(() => {
+                    showBallot();
+                }, 500);
+
+            } catch (err) {
+                msg.textContent = '❌ Network error while verifying OTP.';
+                msg.className = 'complaint-message complaint-message--error';
+                document.getElementById('verify-otp-btn').disabled = false;
+            }
+        }
+
+        // Allow Enter key on OTP input
+        document.getElementById('otp-input').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') verifyOtp();
+        });
+
+
+        // ═══════════════════════════════════════════════════════════
         //   STEP 2: SHOW BALLOT
         // ═══════════════════════════════════════════════════════════
 
         async function showBallot() {
-            document.getElementById('vote-step-1').style.display = 'none';
-            document.getElementById('vote-step-2').style.display = 'block';
+            document.getElementById('vote-step-2').style.display = 'none';
+            document.getElementById('vote-step-3').style.display = 'block';
 
             try {
                 const res = await fetch('/api/elections');
@@ -428,15 +549,52 @@
 
                 if (res.ok && data.success) {
                     // Show receipt
-                    document.getElementById('vote-step-2').style.display = 'none';
-                    document.getElementById('vote-step-3').style.display = 'block';
+                    document.getElementById('vote-step-3').style.display = 'none';
+                    document.getElementById('vote-step-4').style.display = 'block';
 
                     document.getElementById('receipt-party').textContent = data.candidate;
                     document.getElementById('receipt-hash').textContent = data.blockchainHash;
-                    document.getElementById('receipt-status').textContent = 'Queued for blockchain confirmation';
+                    document.getElementById('receipt-status').textContent = '⏳ Queued for blockchain confirmation...';
                     document.getElementById('receipt-status').style.color = '#ff9800';
 
                     addActivity('🗳️', `Vote cast for ${data.candidate} (${verifiedVoterId})`, 'Just now');
+
+                    // ─── Poll for blockchain confirmation ────────────────
+                    let pollAttempts = 0;
+                    const maxAttempts = 40; // Poll up to 2 minutes (40 × 3s)
+
+                    const statusEl = document.getElementById('receipt-status');
+                    const pollInterval = setInterval(async () => {
+                        pollAttempts++;
+                        try {
+                            const statusRes = await fetch(`/api/vote/status/${verifiedVoterId}`);
+                            const statusData = await statusRes.json();
+
+                            if (statusData.status === 'done') {
+                                clearInterval(pollInterval);
+                                const txHash = statusData.tx_hash;
+                                if (txHash && txHash !== 'ALREADY_EXISTS_ON_CHAIN' && txHash !== 'ALREADY_ON_CHAIN') {
+                                    statusEl.innerHTML = `✅ Confirmed on blockchain! <br><code style="font-size:0.75rem;word-break:break-all;color:#1a237e;">${txHash}</code>`;
+                                } else {
+                                    statusEl.textContent = '✅ Confirmed on blockchain!';
+                                }
+                                statusEl.style.color = '#138808';
+                            } else if (statusData.status === 'processing') {
+                                statusEl.textContent = '⛏️ Processing on blockchain...';
+                                statusEl.style.color = '#1e88e5';
+                            } else if (statusData.status === 'failed') {
+                                clearInterval(pollInterval);
+                                statusEl.textContent = '❌ Blockchain confirmation failed. Please contact support.';
+                                statusEl.style.color = '#d32f2f';
+                            } else if (pollAttempts >= maxAttempts) {
+                                clearInterval(pollInterval);
+                                statusEl.textContent = '⏳ Still processing... check back later.';
+                                statusEl.style.color = '#888';
+                            }
+                        } catch (_) {
+                            // Silently ignore network errors during polling
+                        }
+                    }, 3000);
                 } else {
                     msg.textContent = '❌ ' + (data.error || 'Vote failed');
                     msg.className = 'complaint-message complaint-message--error';
@@ -463,12 +621,14 @@
                 complaintMsg.className = 'complaint-message';
 
                 const region = document.getElementById('complaint-region').value.trim();
+                const area = document.getElementById('complaint-area').value.trim();
+                const landmark = document.getElementById('complaint-landmark').value.trim();
                 const department = document.getElementById('complaint-department').value;
                 const level = document.getElementById('complaint-level').value;
                 const title = document.getElementById('complaint-title').value.trim();
                 const description = document.getElementById('complaint-desc').value.trim();
 
-                if (!region || !department || !level || !title || !description) {
+                if (!region || !area || !landmark || !department || !level || !title || !description) {
                     complaintMsg.textContent = '❌ Please fill in all required fields.';
                     complaintMsg.className = 'complaint-message complaint-message--error';
                     return;
@@ -482,7 +642,7 @@
                     const res = await fetch('/api/complaint', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ userId: user.id, region, department, level, title, description })
+                        body: JSON.stringify({ userId: user.id, region, area, landmark, department, level, title, description })
                     });
 
                     const data = await res.json();

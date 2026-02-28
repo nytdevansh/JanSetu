@@ -22,3 +22,6 @@ UPDATE complaints SET status = 'reject' WHERE status = 'dismissed';
 
 -- Enforce new strict ENUM
 ALTER TABLE complaints MODIFY COLUMN status ENUM('pending', 'approve', 'reject') DEFAULT 'pending';
+
+-- Add mobile_no to voters table
+ALTER TABLE voters ADD COLUMN mobile_no VARCHAR(15) AFTER voter_id;

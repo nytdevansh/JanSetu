@@ -1,7 +1,53 @@
+require('dotenv').config();
 const express = require('express');
 const path = require('path');
 const mysql = require('mysql2');
 const crypto = require('crypto');
+const axios = require('axios');
+
+// ─── Environment Variable Validation ─────────────────────────
+console.log('\n🔍 --- Environment Variables Check ---');
+const expectedEnvVars = [
+    { name: 'DB_HOST', default: 'localhost' },
+    { name: 'DB_USER', default: 'root' },
+    { name: 'DB_PASS', default: '(empty)' },
+    { name: 'DB_NAME', default: 'jansetu' },
+    { name: 'PORT', default: '3000' },
+    { name: 'VOTE_SALT', required: true, warn: 'CRITICAL: Set VOTE_SALT in .env to securely encrypt votes.' },
+    { name: 'TWOFACTOR_API_KEY', warn: 'SMS OTPs will fallback to console simulator.' },
+    { name: 'POLYGON_RPC_URL', warn: 'Blockchain reading may fail.' },
+    { name: 'RELAYER_PRIVATE_KEY', warn: 'Blockchain transactions (voting) will fail.' },
+    { name: 'CONTRACT_ADDRESS', warn: 'Smart contract interactions will fail.' }
+];
+
+let hasFatalError = false;
+expectedEnvVars.forEach(v => {
+    if (!process.env[v.name] || String(process.env[v.name]).trim() === '') {
+        if (v.required) {
+            console.error(`❌ Missing REQUIRED: ${v.name} -> ${v.warn}`);
+            hasFatalError = true;
+        } else if (v.name === 'DB_PASS') {
+            console.log(`ℹ️  Missing DB_PASS -> defaulting to empty string`);
+        } else if (v.default !== undefined) {
+            console.log(`ℹ️  Missing ${v.name} -> defaulting to '${v.default}'`);
+        } else {
+            console.log(`⚠️  Missing ${v.name} -> ${v.warn}`);
+        }
+    } else {
+        const val = process.env[v.name];
+        // Obscure sensitive keys for logs
+        const displayVal = (v.name.includes('KEY') || v.name.includes('PASS') || v.name.includes('SALT'))
+            ? '********'
+            : val;
+        console.log(`✅ ${v.name} is configured (${displayVal})`);
+    }
+});
+
+if (hasFatalError) {
+    console.error('🛑 Server startup aborted due to missing REQUIRED environment variables. Please check your .env file.\n');
+    process.exit(1);
+}
+console.log('--------------------------------------\n');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -48,6 +94,23 @@ function dbQuery(sql, params) {
     });
 }
 
+// ── reCAPTCHA Server-Side Verification ───────────────────────────────
+// Google test secret always passes — swap RECAPTCHA_SECRET in .env for production
+const RECAPTCHA_SECRET = process.env.RECAPTCHA_SECRET || '6LeIxAcTAAAAAGG-vFI1TnRWxMZNFuojJ9GsSRy6';
+
+async function verifyRecaptcha(token) {
+    if (!token) return false;
+    try {
+        const response = await axios.post(
+            `https://www.google.com/recaptcha/api/siteverify?secret=${RECAPTCHA_SECRET}&response=${token}`
+        );
+        return response.data && response.data.success === true;
+    } catch (err) {
+        console.error('⚠️ reCAPTCHA verify error:', err.message);
+        return false;
+    }
+}
+
 function hashVoterId(voterId) {
     return '0x' + crypto.createHash('sha256').update(voterId + VOTE_SALT).digest('hex');
 }
@@ -61,9 +124,13 @@ app.get('/api/health', (req, res) => {
     res.json({ status: 'ok', service: 'JanSetu Backend', timestamp: new Date().toISOString() });
 });
 
-app.post('/api/login', (req, res) => {
-    const { username, password } = req.body;
+app.post('/api/login', async (req, res) => {
+    const { username, password, recaptchaToken } = req.body;
     if (!username || !password) return res.status(400).json({ error: 'Username and password are required' });
+
+    // Verify reCAPTCHA
+    const captchaOk = await verifyRecaptcha(recaptchaToken);
+    if (!captchaOk) return res.status(400).json({ error: 'reCAPTCHA verification failed. Please try again.' });
 
     db.query('SELECT * FROM users WHERE username = ? AND password = ?', [username, password], (err, results) => {
         if (err) return res.status(500).json({ error: 'Internal server error' });
@@ -78,9 +145,13 @@ app.post('/api/login', (req, res) => {
     });
 });
 
-app.post('/api/register', (req, res) => {
-    const { username, password, name, email } = req.body;
+app.post('/api/register', async (req, res) => {
+    const { username, password, name, email, recaptchaToken } = req.body;
     if (!username || !password) return res.status(400).json({ error: 'Username and password are required' });
+
+    // Verify reCAPTCHA
+    const captchaOk = await verifyRecaptcha(recaptchaToken);
+    if (!captchaOk) return res.status(400).json({ error: 'reCAPTCHA verification failed. Please try again.' });
 
     db.query('INSERT INTO users (username, password, name, email) VALUES (?, ?, ?, ?)',
         [username, password, name || username, email || null], (err, result) => {
@@ -109,6 +180,90 @@ app.get('/api/elections', async (req, res) => {
     } catch (err) {
         console.error('Elections query error:', err.message);
         res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
+// IN-MEMORY STORE: (Do not use in production! Use Redis or a Database)
+// Structure: { "VOT-100001": { otp: "123456", expiresAt: 167888... } }
+const otpStore = {};
+
+app.post('/api/voter/generate-otp', async (req, res) => {
+    const { voterId } = req.body;
+    if (!voterId) return res.status(400).json({ error: "Voter ID is required" });
+
+    try {
+        const voters = await dbQuery('SELECT * FROM voters WHERE voter_id = ?', [voterId]);
+        if (!voters || voters.length === 0) {
+            return res.status(404).json({ error: 'Invalid Voter ID.' });
+        }
+
+        const voter = voters[0];
+        if (!voter.mobile_no) {
+            return res.status(400).json({ error: 'No mobile number registered for this Voter ID.' });
+        }
+
+        // 1. Generate a 6-digit random number
+        const otp = crypto.randomInt(100000, 999999).toString();
+
+        // 2. Set expiration time (e.g., 5 minutes from now)
+        const expiresAt = Date.now() + 5 * 60 * 1000;
+
+        // 3. Store it
+        otpStore[voterId] = { otp, expiresAt };
+
+        // 4. Send via 2Factor.in
+        if (process.env.TWOFACTOR_API_KEY) {
+            try {
+                const response = await axios.get(
+                    `https://2factor.in/API/V1/${process.env.TWOFACTOR_API_KEY}/SMS/+91${voter.mobile_no}/${otp}/OTP1`
+                );
+
+                if (response.data && response.data.Status === 'Success') {
+                    console.log(`\n📲 [2FACTOR] OTP sent successfully to ${voter.mobile_no} | Session: ${response.data.Details}\n`);
+                } else {
+                    throw new Error(response.data?.Details || '2Factor API failed');
+                }
+
+            } catch (smsErr) {
+                console.error('\n⚠️ 2Factor SMS Error:', smsErr.message);
+                console.log(`Fallback: 📲 [SMS SIMULATOR] Sent OTP [ ${otp} ] to +91 ${voter.mobile_no} (Voter: ${voter.full_name})\n`);
+            }
+        } else {
+            console.log(`\n📲 [SMS SIMULATOR] Sent OTP [ ${otp} ] to +91 ${voter.mobile_no} (Voter: ${voter.full_name})\n`);
+            console.log(`   (Add TWOFACTOR_API_KEY to .env to send real SMS)`);
+        }
+
+        res.json({ success: true, message: "OTP generated and sent successfully!" });
+    } catch (err) {
+        console.error('OTP generate error:', err.message);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
+app.post('/api/voter/verify-otp', (req, res) => {
+    const { voterId, otp } = req.body;
+    if (!voterId || !otp) return res.status(400).json({ error: "Voter ID and OTP are required" });
+
+    const record = otpStore[voterId];
+
+    // Check 1: Does the record exist?
+    if (!record) {
+        return res.status(400).json({ error: "No OTP found or OTP expired" });
+    }
+
+    // Check 2: Is it expired?
+    if (Date.now() > record.expiresAt) {
+        delete otpStore[voterId]; // Clean up expired OTP
+        return res.status(400).json({ error: "OTP has expired" });
+    }
+
+    // Check 3: Does it match?
+    if (record.otp === otp) {
+        // Success! Clean up the OTP so it can't be used again
+        delete otpStore[voterId];
+        return res.json({ success: true, message: "OTP verified successfully!" });
+    } else {
+        return res.status(400).json({ error: "Invalid OTP" });
     }
 });
 
@@ -141,6 +296,7 @@ app.post('/api/voter/verify', async (req, res) => {
             alreadyVoted: false,
             voter: {
                 name: voter.full_name,
+                mobile_no: voter.mobile_no,
                 fatherName: voter.father_name,
                 age: voter.age,
                 gender: voter.gender,
@@ -212,10 +368,159 @@ app.post('/api/vote', async (req, res) => {
             status: 'queued'
         });
 
+        // Trigger processing immediately in the background
+        processPendingVotes();
+
     } catch (err) {
         console.error('Vote submission error:', err.message);
         res.status(500).json({ error: 'Internal server error' });
     }
+});
+
+// ─── Get real-time vote confirmation status ───────────────
+app.get('/api/vote/status/:voterId', async (req, res) => {
+    const { voterId } = req.params;
+    try {
+        const rows = await dbQuery(
+            "SELECT status, tx_hash FROM vote_queue WHERE voter_id = ? ORDER BY created_at DESC LIMIT 1",
+            [voterId]
+        );
+
+        if (rows.length === 0) {
+            return res.status(404).json({ error: 'Vote not found' });
+        }
+
+        res.json({ status: rows[0].status, tx_hash: rows[0].tx_hash });
+    } catch (err) {
+        res.status(500).json({ error: 'Failed to fetch status' });
+    }
+});
+
+// ═══════════════════════════════════════════════════════════
+//   BLOCKCHAIN VOTE PROCESSOR (BACKGROUND WORKER)
+// ═══════════════════════════════════════════════════════════
+const { ethers } = require('ethers');
+
+// Full ABI matching Voting.sol
+const VotingABI = [
+    "function castVote(string memory _voterHash, uint256 _electionId, string memory _candidate) public",
+    "function hasVoted(string memory, uint256) public view returns (bool)",
+    "function getTotalVotes() public view returns (uint256)",
+    "event VoteCast(string indexed voterHash, uint256 indexed electionId, string candidate, uint256 timestamp)"
+];
+
+let isProcessingVotes = false;
+
+async function processPendingVotes() {
+    if (isProcessingVotes) return;
+    isProcessingVotes = true;
+
+    try {
+        const pendingVotes = await dbQuery("SELECT * FROM vote_queue WHERE status = 'queued' ORDER BY created_at ASC");
+
+        if (pendingVotes.length === 0) {
+            isProcessingVotes = false;
+            return;
+        }
+
+        console.log(`\n⏳ [BLOCKCHAIN] Found ${pendingVotes.length} pending votes to process...`);
+
+        if (!process.env.POLYGON_RPC_URL || !process.env.RELAYER_PRIVATE_KEY || !process.env.CONTRACT_ADDRESS) {
+            console.error('⚠️ [BLOCKCHAIN] Missing RPC, Private Key, or Contract Address. Votes remain queued.');
+            isProcessingVotes = false;
+            return;
+        }
+
+        const provider = new ethers.JsonRpcProvider(process.env.POLYGON_RPC_URL);
+        const wallet = new ethers.Wallet(process.env.RELAYER_PRIVATE_KEY, provider);
+        const votingContract = new ethers.Contract(process.env.CONTRACT_ADDRESS, VotingABI, wallet);
+
+        let currentNonce = await wallet.getNonce();
+
+        for (const vote of pendingVotes) {
+            try {
+                console.log(`\n👉 Submitting Hash: ${vote.blockchain_hash} for Candidate: ${vote.candidate}`);
+
+                // ✅ Check if already on-chain BEFORE submitting (correct mapping call)
+                const alreadyOnChain = await votingContract.hasVoted(vote.blockchain_hash, vote.election_id);
+                if (alreadyOnChain) {
+                    console.log(`⚠️  Vote ID ${vote.id} already exists on-chain — marking as done.`);
+                    await dbQuery(
+                        "UPDATE vote_queue SET status = 'done', tx_hash = 'ALREADY_ON_CHAIN' WHERE id = ?",
+                        [vote.id]
+                    );
+                    continue; // Skip to next vote, don't increment nonce
+                }
+
+                // Mark as processing
+                await dbQuery("UPDATE vote_queue SET status = 'processing' WHERE id = ?", [vote.id]);
+
+                // Submit to blockchain
+                const tx = await votingContract.castVote(
+                    vote.blockchain_hash,
+                    vote.election_id,
+                    vote.candidate,
+                    { nonce: currentNonce }
+                );
+
+                console.log(`⏱️ Waiting for TX: ${tx.hash}`);
+                const receipt = await tx.wait();
+
+                await dbQuery(
+                    "UPDATE vote_queue SET status = 'done', tx_hash = ? WHERE id = ?",
+                    [receipt.hash, vote.id]
+                );
+
+                console.log(`✅ Vote saved to blockchain! TX: ${receipt.hash}`);
+                currentNonce++;
+
+            } catch (txError) {
+                console.error(`❌ Blockchain TX Failed for Vote ID ${vote.id}:`, txError.message);
+
+                if (txError.message && (txError.message.includes("already cast") || txError.message.includes("revert"))) {
+                    console.log(`⚠️ Vote ID ${vote.id} reverted — already on-chain. Marking done.`);
+                    await dbQuery(
+                        "UPDATE vote_queue SET status = 'done', tx_hash = 'ALREADY_EXISTS_ON_CHAIN' WHERE id = ?",
+                        [vote.id]
+                    );
+                } else {
+                    await dbQuery("UPDATE vote_queue SET status = 'failed' WHERE id = ?", [vote.id]);
+                }
+            }
+        }
+    } catch (err) {
+        console.error('❌ Vote Processor Error:', err.message);
+    } finally {
+        isProcessingVotes = false;
+
+        // Check if more votes arrived while processing
+        dbQuery("SELECT COUNT(*) as count FROM vote_queue WHERE status = 'queued'").then(res => {
+            if (res[0].count > 0) processPendingVotes();
+        });
+    }
+}
+
+// ✅ Run worker on server startup to catch any stuck queued votes
+setTimeout(() => {
+    console.log('\n🚀 [BLOCKCHAIN] Running startup vote processor...');
+    processPendingVotes();
+}, 3000); // Wait 3s for DB connection to stabilize
+
+// ✅ Also poll every 60 seconds as a safety net
+setInterval(() => {
+    dbQuery("SELECT COUNT(*) as count FROM vote_queue WHERE status IN ('queued', 'failed')")
+        .then(res => {
+            if (res[0].count > 0) {
+                console.log(`\n🔄 [BLOCKCHAIN] Polling: Found ${res[0].count} unprocessed vote(s)...`);
+                processPendingVotes();
+            }
+        })
+        .catch(() => { });
+}, 60000);
+
+// Expose contract address publicly so frontend can auto-fill it
+app.get('/api/config/contract', (req, res) => {
+    res.json({ contractAddress: process.env.CONTRACT_ADDRESS || null });
 });
 
 // Get election results (public — open data)
@@ -344,11 +649,58 @@ app.put('/api/official/complaint/:id/status', async (req, res) => {
 
 
 // ═══════════════════════════════════════════════════════════
+//   AUTO-REJECT BACKGROUND WORKER
+//   Complaints still 'pending' after 10 minutes → auto-rejected
+// ═══════════════════════════════════════════════════════════
+
+const AUTO_REJECT_MINUTES = 10;
+
+async function autoRejectStalePendingComplaints() {
+    try {
+        const result = await dbQuery(
+            `UPDATE complaints
+             SET status = 'reject'
+             WHERE status = 'pending'
+               AND created_at <= NOW() - INTERVAL ${AUTO_REJECT_MINUTES} MINUTE`
+        );
+        if (result.affectedRows > 0) {
+            console.log(`⏰ [AUTO-REJECT] ${result.affectedRows} complaint(s) auto-rejected after ${AUTO_REJECT_MINUTES}-min deadline.`);
+        }
+    } catch (err) {
+        console.error('⚠️ [AUTO-REJECT] Worker error:', err.message);
+    }
+}
+
+// Run every 60 seconds
+setInterval(autoRejectStalePendingComplaints, 60 * 1000);
+console.log(`⏰ [AUTO-REJECT] Worker started — complaints auto-rejected after ${AUTO_REJECT_MINUTES} min of no official response.`);
+
+// Manual trigger endpoint (useful for testing)
+app.post('/api/admin/auto-reject-pending', async (req, res) => {
+    try {
+        const result = await dbQuery(
+            `UPDATE complaints
+             SET status = 'reject'
+             WHERE status = 'pending'
+               AND created_at <= NOW() - INTERVAL ${AUTO_REJECT_MINUTES} MINUTE`
+        );
+        res.json({
+            success: true,
+            autoRejected: result.affectedRows,
+            message: `${result.affectedRows} stale complaint(s) auto-rejected.`
+        });
+    } catch (err) {
+        res.status(500).json({ error: 'Auto-reject failed: ' + err.message });
+    }
+});
+
+
+// ═══════════════════════════════════════════════════════════
 //   COMPLAINTS ROUTES
 // ═══════════════════════════════════════════════════════════
 
 app.post('/api/complaint', async (req, res) => {
-    const { userId, region, department, level, title, description } = req.body;
+    const { userId, region, area, landmark, department, level, title, description } = req.body;
     if (!userId || !region || !department || !level || !title || !description) {
         return res.status(400).json({ error: 'All fields are required' });
     }
@@ -356,10 +708,15 @@ app.post('/api/complaint', async (req, res) => {
     const validLevels = ['low', 'medium', 'high', 'critical'];
     if (!validLevels.includes(level)) return res.status(400).json({ error: 'Invalid level' });
 
+    // Build enriched description with location details
+    const areaInfo = area ? `\n📍 Area: ${area}` : '';
+    const landmarkInfo = landmark ? `\n🏛️ Landmark: ${landmark}` : '';
+    const fullDescription = description + areaInfo + landmarkInfo;
+
     try {
         const result = await dbQuery(
             'INSERT INTO complaints (user_id, region, department, level, title, description) VALUES (?, ?, ?, ?, ?, ?)',
-            [userId, region, department, level, title, description]
+            [userId, region, department, level, title, fullDescription]
         );
         res.status(201).json({
             success: true, message: 'Complaint submitted successfully',
@@ -407,6 +764,44 @@ app.get('/api/schemes', (req, res) => {
     });
 });
 
+
+// ═══════════════════════════════════════════════════════════
+//   ADMIN ROUTES (Development Only)
+// ═══════════════════════════════════════════════════════════
+
+app.delete('/api/admin/cleanup-queue', async (req, res) => {
+    const { ids, status } = req.body;
+
+    try {
+        let result;
+        if (ids && Array.isArray(ids) && ids.length > 0) {
+            result = await dbQuery('DELETE FROM vote_queue WHERE id IN (?)', [ids]);
+            res.json({ success: true, message: `Deleted ${result.affectedRows} vote(s) from queue`, deleted: ids });
+        } else if (status) {
+            result = await dbQuery('DELETE FROM vote_queue WHERE status = ?', [status]);
+            res.json({ success: true, message: `Deleted all '${status}' votes from queue`, affectedRows: result.affectedRows });
+        } else {
+            res.status(400).json({ error: 'Provide either ids (array) or status (string)' });
+        }
+    } catch (err) {
+        console.error('Cleanup queue error:', err.message);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
+app.post('/api/admin/reset-voter', async (req, res) => {
+    const { voterId } = req.body;
+    if (!voterId) return res.status(400).json({ error: 'voterId is required' });
+
+    try {
+        await dbQuery('UPDATE voters SET has_voted = FALSE, voted_party = NULL, voted_at = NULL WHERE voter_id = ?', [voterId]);
+        await dbQuery('DELETE FROM vote_queue WHERE voter_id = ?', [voterId]);
+        res.json({ success: true, message: `Voter ${voterId} has been reset successfully` });
+    } catch (err) {
+        console.error('Reset voter error:', err.message);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
 
 // ─── Catch-all ───────────────────────────────────────────
 app.use((req, res, next) => {

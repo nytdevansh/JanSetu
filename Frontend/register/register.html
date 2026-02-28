@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Register — JanSetu</title>
     <link rel="stylesheet" href="registerstyle.css">
+    <script src="https://www.google.com/recaptcha/api.js" async defer></script>
 </head>
 
 <body>
@@ -39,9 +40,19 @@
 
             <input type="text" id="fullname" placeholder="Full Name" class="rect" required>
             <input type="email" id="email" placeholder="Email" class="rect" required>
+            <span id="email-error"
+                style="display:none;color:#c0392b;font-size:0.82rem;margin-top:-10px;margin-bottom:4px;padding-left:4px;">⚠️
+                Please enter a valid email address (e.g. name@domain.com)</span>
             <input type="text" id="username" placeholder="Username" class="rect" required>
             <input type="password" id="password" placeholder="Password" class="rect" required>
             <input type="password" id="confirm-password" placeholder="Confirm Password" class="rect" required>
+
+            <!-- reCAPTCHA widget -->
+            <div style="margin: 12px 0; display:flex; justify-content:center;">
+                <div class="g-recaptcha" data-sitekey="6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI"
+                    id="register-recaptcha">
+                </div>
+            </div>
 
             <button type="submit" class="submit-btn" id="submit-btn">Register</button>
 
@@ -65,6 +76,9 @@
             const password = document.getElementById('password').value;
             const confirmPassword = document.getElementById('confirm-password').value;
 
+            // Validate email format
+            if (!validateEmail()) return;
+
             // Validate passwords match
             if (password !== confirmPassword) {
                 messageDiv.textContent = '❌ Passwords do not match';
@@ -78,6 +92,14 @@
                 return;
             }
 
+            // reCAPTCHA check
+            const recaptchaToken = grecaptcha.getResponse();
+            if (!recaptchaToken) {
+                messageDiv.textContent = '❌ Please complete the reCAPTCHA verification.';
+                messageDiv.classList.add('message--error');
+                return;
+            }
+
             submitBtn.disabled = true;
             submitBtn.textContent = 'Registering...';
 
@@ -85,7 +107,7 @@
                 const res = await fetch('/api/register', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ username, password, name, email })
+                    body: JSON.stringify({ username, password, name, email, recaptchaToken })
                 });
 
                 const data = await res.json();
@@ -108,7 +130,34 @@
 
             submitBtn.disabled = false;
             submitBtn.textContent = 'Register';
+            grecaptcha.reset();
         });
+
+        const emailInput = document.getElementById('email');
+        const emailError = document.getElementById('email-error');
+
+        function validateEmail() {
+            const email = emailInput.value.trim();
+            const pattern = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+            if (pattern.test(email)) {
+                emailError.style.display = 'none';
+                emailInput.style.borderColor = '';
+                return true;
+            } else {
+                emailError.style.display = 'block';
+                emailInput.style.borderColor = '#c0392b';
+                emailInput.focus();
+                return false;
+            }
+        }
+
+        // Clear error as soon as user starts typing again
+        emailInput.addEventListener('input', () => {
+            if (emailError.style.display === 'block') validateEmail();
+        });
+
+        // Validate the moment the field loses focus
+        emailInput.addEventListener('blur', validateEmail);
     </script>
 
 </body>

@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>About Us — JanSetu</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+Devanagari:wght@400;600;700&display=swap"
+        rel="stylesheet">
+    <style>
+        .container {
+            max-width: 1000px;
+            margin: 60px auto;
+            padding: 0 20px;
+            min-height: 50vh;
+        }
+
+        .container h2 {
+            font-size: 28px;
+            font-weight: 600;
+            margin-bottom: 30px;
+            color: var(--color-text);
+        }
+
+        .container p {
+            font-size: 15.5px;
+            line-height: 1.9;
+            margin-bottom: 18px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- ===== TOP HEADER BAR ===== -->
+    <header class="top-header" id="top-header">
+        <div class="top-header__inner">
+            <div class="top-header__brand">
+                <img src="assets/ashok.png" alt="Government of India Emblem" class="top-header__emblem">
+                <div class="top-header__brand-text">
+                    <img src="assets/JanSetu.png" alt="JanSetu Logo" class="top-header__logo">
+                </div>
+            </div>
+
+            <nav class="top-header__nav" id="main-nav">
+                <button class="top-header__hamburger" id="hamburger-btn" aria-label="Toggle navigation menu">
+                    <span></span><span></span><span></span>
+                </button>
+                <ul class="top-header__nav-list" id="nav-list">
+                    <li><a href="index.html" class="top-header__nav-link">Home</a></li>
+                    <li><a href="index.html#section-schemes" class="top-header__nav-link">Schemes</a></li>
+                    <li><a href="index.html#section-services" class="top-header__nav-link">Services</a></li>
+                    <li><a href="about.html" class="top-header__nav-link active">About</a></li>
+                </ul>
+            </nav>
+
+            <div class="top-header__actions">
+                <div class="top-header__font-controls">
+                    <button class="top-header__font-btn" id="font-increase" aria-label="Increase font size">A+</button>
+                    <button class="top-header__font-btn" id="font-default" aria-label="Default font size">A</button>
+                    <button class="top-header__font-btn" id="font-decrease" aria-label="Decrease font size">A-</button>
+                </div>
+                <a href="#" class="top-header__lang-btn">हिन्दी</a>
+                <a href="login/login.HTML" class="top-header__login-btn" id="login-btn">Login</a>
+                <a href="register/register.html" class="top-header__register-btn" id="register-btn">Register</a>
+                <img src="assets/modiji.png" alt="Honourable Prime Minister" class="top-header__pm">
+            </div>
+        </div>
+    </header>
+
+    <main class="main-content">
+        <div class="container">
+            <h2>About Us</h2>
+            <p>We are a technology-driven platform committed to empowering citizens and strengthening democratic systems
+                through innovation, transparency, and security. Our goal is to bridge the gap between citizens and
+                government authorities by providing a reliable and user-friendly digital platform that encourages civic
+                participation and accountability.</p>
+            <p>We believe that technology can play a powerful role in improving governance and ensuring that every
+                citizen’s voice is heard and valued.</p>
+            <p>Our civic engagement platform allows citizens to report local issues such as infrastructure problems,
+                public service concerns, or community needs in a simple and efficient manner. Citizens can track the
+                progress of their reports in real time, ensuring transparency and reducing communication gaps between
+                the public and government authorities.</p>
+            <p>In addition to civic engagement, we have developed a blockchain-based voting system designed to enhance
+                the transparency, security, and reliability of elections. By leveraging blockchain technology, we aim to
+                create a trustworthy electoral process that strengthens democratic values and public confidence.</p>
+            <p>Our mission is to create a transparent, secure, and inclusive digital environment where citizens can
+                actively participate in governance and democratic processes.</p>
+            <p>Through innovation, dedication, and responsible use of technology, we strive to transform civic
+                engagement and electoral systems, making them more efficient, transparent, and accessible for everyone.
+            </p>
+            <p>Our platform represents a step toward a more connected, secure, and empowered society.</p>
+        </div>
+    </main>
+
+    <!-- ===== FOOTER ===== -->
+    <footer class="footer" id="footer">
+        <div class="footer__inner">
+            <div class="footer__brand">
+                <img src="assets/JanSetu.png" alt="JanSetu" class="footer__logo">
+                <p class="footer__tagline">Connecting Citizens to Government</p>
+            </div>
+            <div class="footer__links">
+                <h4 class="footer__heading">Quick Links</h4>
+                <ul>
+                    <li><a href="about.html">About JanSetu</a></li>
+                    <li><a href="terms_and_condition.html">Terms of Use</a></li>
+                    <li><a href="login/official-login.html" style="color: #ff9800; font-weight: bold;">Official
+                            Login</a></li>
+                    <li><a href="#">Privacy Policy</a></li>
+
+                </ul>
+            </div>
+            <div class="footer__contact">
+                <h4 class="footer__heading">Contact Us</h4>
+                <ul>
+                    <li>📞 1800-XXX-XXXX (Toll Free)</li>
+                    <li>✉️ support@jansetu.gov.in</li>
+                    <li>🏛️ Ministry of Electronics & IT<br>New Delhi - 110003</li>
+                </ul>
+            </div>
+        </div>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+
+</html>

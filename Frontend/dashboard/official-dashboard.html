@@ -190,6 +190,7 @@
             line-height: 1.5;
             display: -webkit-box;
             -webkit-line-clamp: 2;
+            line-clamp: 2;
             -webkit-box-orient: vertical;
             overflow: hidden;
             max-width: 350px;
@@ -307,6 +308,70 @@
             color: #334155;
             margin-bottom: 16px;
         }
+
+        /* ── Countdown Timer ── */
+        .deadline-cell {
+            white-space: nowrap;
+            text-align: center;
+        }
+
+        .timer-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.82rem;
+            font-weight: 700;
+            font-family: 'JetBrains Mono', 'Courier New', monospace;
+            letter-spacing: 0.5px;
+            border: 1px solid;
+            transition: background 0.5s, color 0.5s, border-color 0.5s;
+        }
+
+        .timer-badge.green {
+            background: rgba(34, 197, 94, 0.12);
+            color: #86efac;
+            border-color: rgba(34, 197, 94, 0.35);
+        }
+
+        .timer-badge.yellow {
+            background: rgba(234, 179, 8, 0.12);
+            color: #fde047;
+            border-color: rgba(234, 179, 8, 0.4);
+        }
+
+        .timer-badge.red {
+            background: rgba(239, 68, 68, 0.15);
+            color: #fca5a5;
+            border-color: rgba(239, 68, 68, 0.4);
+            animation: pulse-red 1s ease-in-out infinite;
+        }
+
+        .timer-badge.expired {
+            background: rgba(239, 68, 68, 0.08);
+            color: #94a3b8;
+            border-color: #334155;
+            font-size: 0.75rem;
+            animation: none;
+        }
+
+        @keyframes pulse-red {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.55;
+            }
+        }
+
+        .timer-na {
+            font-size: 0.8rem;
+            color: #475569;
+        }
     </style>
 </head>
 
@@ -401,6 +466,7 @@
                             <th>Issue Details</th>
                             <th>Severity</th>
                             <th>Filed On</th>
+                            <th>⏱ Deadline</th>
                             <th>Status Action</th>
                         </tr>
                     </thead>
@@ -417,8 +483,16 @@
                 if (c.level === 'high') sevClass = 'severity-high';
                 if (c.level === 'medium') sevClass = 'severity-medium';
 
+                // Timer cell — only shown for pending complaints
+                let timerCell;
+                if (c.status === 'pending') {
+                    timerCell = `<td class="deadline-cell"><span class="timer-badge" id="timer-${c.id}" data-createdat="${c.created_at}">⏱ --:--</span></td>`;
+                } else {
+                    timerCell = `<td class="deadline-cell"><span class="timer-na">—</span></td>`;
+                }
+
                 html += `
-                    <tr>
+                    <tr id="row-${c.id}">
                         <td><span class="tracking-id">${trackingId}</span></td>
                         <td><span class="citizen-name">${c.citizen_name}</span></td>
                         <td>
@@ -429,6 +503,7 @@
                             <span class="severity-badge ${sevClass}">${c.level}</span>
                         </td>
                         <td style="white-space: nowrap;">${date}</td>
+                        ${timerCell}
                         <td>
                             <div class="action-group">
                                 <select id="status-${c.id}" class="status-select ${c.status}" onchange="this.className='status-select '+this.value">
@@ -445,6 +520,62 @@
 
             html += `</tbody></table>`;
             document.getElementById('table-container').innerHTML = html;
+
+            // Start countdown ticks for all pending rows
+            startCountdownTickers();
+        }
+
+        // ── Countdown Ticker ──────────────────────────────────────
+        const AUTO_REJECT_MS = 10 * 60 * 1000; // must match server AUTO_REJECT_MINUTES
+        let tickerInterval = null;
+
+        function startCountdownTickers() {
+            // Clear any previous interval
+            if (tickerInterval) clearInterval(tickerInterval);
+
+            const badges = document.querySelectorAll('.timer-badge[data-createdat]');
+            if (badges.length === 0) return;
+
+            tickerInterval = setInterval(() => {
+                let anyPending = false;
+
+                badges.forEach(badge => {
+                    const createdAt = new Date(badge.dataset.createdat).getTime();
+                    const deadline = createdAt + AUTO_REJECT_MS;
+                    const remaining = deadline - Date.now();
+                    const id = badge.id.replace('timer-', '');
+
+                    if (remaining <= 0) {
+                        // Has expired — reload the table once
+                        badge.textContent = '⛔ Expired';
+                        badge.className = 'timer-badge expired';
+                        clearInterval(tickerInterval);
+                        tickerInterval = null;
+                        setTimeout(() => loadComplaints(), 1200);
+                        return;
+                    }
+
+                    anyPending = true;
+                    const mins = String(Math.floor(remaining / 60000)).padStart(2, '0');
+                    const secs = String(Math.floor((remaining % 60000) / 1000)).padStart(2, '0');
+                    badge.textContent = `⏱ ${mins}:${secs}`;
+
+                    // Colour coding
+                    const pct = remaining / AUTO_REJECT_MS;
+                    if (pct > 0.5) {
+                        badge.className = 'timer-badge green';
+                    } else if (pct > 0.2) {
+                        badge.className = 'timer-badge yellow';
+                    } else {
+                        badge.className = 'timer-badge red';
+                    }
+                });
+
+                if (!anyPending && tickerInterval) {
+                    clearInterval(tickerInterval);
+                    tickerInterval = null;
+                }
+            }, 1000);
         }
 
         async function updateStatus(id, event) {

@@ -51,17 +51,16 @@
         <!-- DB Results (always works, reads from backend API) -->
         <section class="results-section results-section--active" id="results-db">
             <h2 class="results-title">Election Results <span class="results-badge results-badge--db">from
-                    Database</span>
-            </h2>
+                    Database</span></h2>
             <div id="db-results-container">
                 <p class="loading-text">Loading election results...</p>
             </div>
         </section>
 
-        <!-- On-Chain Results (requires contract address) -->
+        <!-- On-Chain Results -->
         <section class="results-section" id="results-chain">
             <h2 class="results-title">On-Chain Results <span class="results-badge results-badge--chain">from
-                    Polygon</span></h2>
+                    Hardhat</span></h2>
 
             <div class="chain-config">
                 <label class="form-label">Contract Address</label>
@@ -86,8 +85,8 @@
         </div>
     </footer>
 
-    <!-- ethers.js CDN for direct blockchain reads -->
-    <script src="https://cdn.jsdelivr.net/npm/ethers@6/dist/ethers.min.js"></script>
+    <!-- ✅ ethers.js v5 UMD build — exposes window.ethers globally -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js" type="text/javascript"></script>
 
     <script>
         // ─── Mode Switching ──────────────────────────────────────
@@ -159,7 +158,18 @@
 
 
         // ─── Load On-Chain Results ────────────────────────────────
+        // Uses the CORRECT ABI matching your actual Voting.sol contract
         const chainContainer = document.getElementById('chain-results-container');
+
+        // ✅ ABI matching Voting.sol exactly
+        const VOTING_ABI = [
+            "function castVote(string memory _voterHash, uint256 _electionId, string memory _candidate) public",
+            "function hasVoted(string memory, uint256) public view returns (bool)",
+            "function getTotalVotes() public view returns (uint256)",
+            "function getVote(uint256 index) public view returns (string memory, uint256, string memory, uint256)",
+            "function votes(uint256) public view returns (string memory voterHash, uint256 electionId, string memory candidate, uint256 timestamp)",
+            "event VoteCast(string indexed voterHash, uint256 indexed electionId, string candidate, uint256 timestamp)"
+        ];
 
         async function loadChainResults() {
             const contractAddr = document.getElementById('contract-address').value.trim();
@@ -168,56 +178,85 @@
                 return;
             }
 
-            chainContainer.innerHTML = '<p class="loading-text">Connecting to Polygon...</p>';
+            chainContainer.innerHTML = '<p class="loading-text">⏳ Connecting to Hardhat node...</p>';
 
             try {
-                const provider = new ethers.JsonRpcProvider('https://rpc-amoy.polygon.technology');
+                // ✅ ethers v5 syntax — correct provider
+                const provider = new ethers.providers.JsonRpcProvider('http://127.0.0.1:8545');
 
-                const abi = [
-                    'function getResults() external view returns (string[] memory names, uint256[] memory votes)',
-                    'function totalVotes() external view returns (uint256)',
-                    'function electionActive() external view returns (bool)',
-                    'function admin() external view returns (address)'
-                ];
-
-                const contract = new ethers.Contract(contractAddr, abi, provider);
-
-                const [names, votes] = await contract.getResults();
-                const totalVotes = await contract.totalVotes();
-                const isActive = await contract.electionActive();
-
-                let html = `
-                    <div class="result-card result-card--chain">
-                        <div class="chain-info">
-                            <span class="chain-badge ${isActive ? 'chain-badge--active' : 'chain-badge--ended'}">${isActive ? '🟢 Active' : '🔴 Ended'}</span>
-                            <a href="https://amoy.polygonscan.com/address/${contractAddr}" target="_blank" class="chain-link">View on PolygonScan ↗</a>
-                        </div>
-                        <h3 class="result-card__title">On-Chain Tally</h3>
-                        <p class="result-card__total">Total votes: <strong>${totalVotes.toString()}</strong></p>
-                        <div class="result-card__bars">`;
-
-                const total = Number(totalVotes);
-                for (let i = 0; i < names.length; i++) {
-                    const v = Number(votes[i]);
-                    const pct = total > 0 ? ((v / total) * 100).toFixed(1) : 0;
-                    html += `
-                            <div class="bar-row">
-                                <span class="bar-label">${names[i]}</span>
-                                <div class="bar-track bar-track--chain">
-                                    <div class="bar-fill bar-fill--chain" style="width: ${pct}%"></div>
-                                </div>
-                                <span class="bar-count">${v} (${pct}%)</span>
-                            </div>`;
+                // Test connection first
+                try {
+                    await provider.getBlockNumber();
+                } catch (connErr) {
+                    throw new Error('Cannot connect to Hardhat node at http://127.0.0.1:8545. Is it running?');
                 }
 
-                html += `
+                const contract = new ethers.Contract(contractAddr, VOTING_ABI, provider);
+
+                // Get total votes from contract
+                const totalVotesBN = await contract.getTotalVotes();
+                const totalVotes = totalVotesBN.toNumber();
+
+                if (totalVotes === 0) {
+                    chainContainer.innerHTML = `
+                        <div class="result-card result-card--chain">
+                            <h3 class="result-card__title">On-Chain Tally</h3>
+                            <p class="result-card__total">No votes recorded on-chain yet.</p>
+                        </div>`;
+                    return;
+                }
+
+                // ✅ Read all VoteCast events to tally by candidate
+                // (Voting.sol stores individual votes, not aggregated tallies)
+                const filter = contract.filters.VoteCast();
+                const events = await contract.queryFilter(filter, 0, 'latest');
+
+                // Tally votes per candidate
+                const tally = {};
+                for (const event of events) {
+                    const candidate = event.args.candidate;
+                    tally[candidate] = (tally[candidate] || 0) + 1;
+                }
+
+                // Sort by votes descending
+                const sorted = Object.entries(tally).sort((a, b) => b[1] - a[1]);
+                const total = events.length;
+
+                let barsHtml = '';
+                for (const [candidate, votes] of sorted) {
+                    const pct = total > 0 ? ((votes / total) * 100).toFixed(1) : 0;
+                    barsHtml += `
+                        <div class="bar-row">
+                            <span class="bar-label">${candidate}</span>
+                            <div class="bar-track bar-track--chain">
+                                <div class="bar-fill bar-fill--chain" style="width: ${pct}%"></div>
+                            </div>
+                            <span class="bar-count">${votes} (${pct}%)</span>
+                        </div>`;
+                }
+
+                chainContainer.innerHTML = `
+                    <div class="result-card result-card--chain">
+                        <div class="chain-info">
+                            <span class="chain-badge chain-badge--active">🟢 Local Hardhat</span>
+                            <span class="chain-link">Contract: ${contractAddr.slice(0, 6)}...${contractAddr.slice(-4)}</span>
+                        </div>
+                        <h3 class="result-card__title">On-Chain Tally</h3>
+                        <p class="result-card__total">Total votes on-chain: <strong>${total}</strong></p>
+                        <div class="result-card__bars">
+                            ${barsHtml}
                         </div>
                     </div>`;
 
-                chainContainer.innerHTML = html;
-
             } catch (err) {
-                chainContainer.innerHTML = `<p class="loading-text" style="color:#cc3333;">Failed to read contract: ${err.message}</p>`;
+                chainContainer.innerHTML = `
+                    <div style="padding: 1rem;">
+                        <p class="loading-text" style="color:#cc3333;">❌ ${err.message}</p>
+                        <p class="loading-text" style="margin-top:0.5rem; font-size:0.85rem; opacity:0.7;">
+                            Make sure: (1) Hardhat node is running on port 8545, 
+                            (2) Contract address is correct from your .env file.
+                        </p>
+                    </div>`;
             }
         }
     </script>
